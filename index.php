@@ -52,6 +52,20 @@ if (in_array($page, $action_pages)) {
     <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d6efd">
+<link rel="apple-touch-icon" href="assets/images/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <meta name="apple-mobile-web-app-title" content="SIMPKL">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('PWA Service Worker registered!', reg))
+        .catch(err => console.log('PWA Error:', err));
+    });
+  }
+</script>
 <body style="background-color: #f4f6f9;">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
@@ -235,6 +249,39 @@ if (in_array($page, $action_pages)) {
         });
     });
 </script>
+<div id="ios-install-prompt" class="fixed-bottom p-3 m-3 bg-white rounded shadow-lg border" style="display: none; z-index: 9999;">
+    <div class="d-flex align-items-start">
+        <img src="assets/images/icon-192.png" width="50" class="rounded me-3">
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1">Install Aplikasi SIMPKL</h6>
+            <p class="small text-muted mb-0">
+                Untuk menginstall di iPhone: <br>
+                1. Tekan tombol <strong>Share</strong> <i class="fas fa-share-square text-primary"></i> di bawah browser Safari.<br>
+                2. Pilih <strong>"Add to Home Screen"</strong> (Tambah ke Layar Utama) <i class="fas fa-plus-square"></i>.
+            </p>
+        </div>
+        <button type="button" class="btn-close ms-2" onclick="tutupPrompt()"></button>
+    </div>
+</div>
 
+<script>
+    // Deteksi apakah device adalah iOS (iPhone/iPad)
+    const isIos = () => {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+    }
+
+    // Deteksi apakah sudah diinstall (Standalone mode)
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    // Tampilkan pesan hanya jika: Ini iOS DAN Belum diinstall
+    if (isIos() && !isInStandaloneMode()) {
+        document.getElementById('ios-install-prompt').style.display = 'block';
+    }
+
+    function tutupPrompt() {
+        document.getElementById('ios-install-prompt').style.display = 'none';
+    }
+</script>
 </body>
 </html>

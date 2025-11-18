@@ -126,6 +126,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             letter-spacing: 0.05em;
         }
     </style>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d6efd">
+<link rel="apple-touch-icon" href="assets/images/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <meta name="apple-mobile-web-app-title" content="SIMPKL">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('PWA Service Worker registered!', reg))
+        .catch(err => console.log('PWA Error:', err));
+    });
+  }
+</script>
 </head>
 <body>
 
