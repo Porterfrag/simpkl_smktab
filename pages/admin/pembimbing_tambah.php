@@ -69,9 +69,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <form action="index.php?page=admin/pembimbing_tambah" method="POST">
     
     <div class="mb-3">
-        <label for="nip" class="form-label">NIP</label>
+        <label for="nip" class="form-label">NIP / NUPTK / ID Pegawai</label>
         <input type="text" class="form-control" id="nip" name="nip" required 
+               placeholder="Masukkan NIP, NUPTK, atau ID lainnya"
                value="<?php echo htmlspecialchars(isset($_POST['nip']) ? $_POST['nip'] : ''); ?>">
+        <small class="text-muted">Nomor ini akan digunakan sebagai <strong>Username</strong> untuk login.</small>
     </div>
     
     <div class="mb-3">

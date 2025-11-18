@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $file_ext = strtolower(end($file_ext_arr));
             
             $allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
-            $max_size = 2 * 1024 * 1024; 
+            $max_size = 10 * 1024 * 1024;
 
             if (in_array($file_ext, $allowed_ext)) {
                 if ($file_size <= $max_size) {

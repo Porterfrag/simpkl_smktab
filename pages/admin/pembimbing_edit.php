@@ -78,9 +78,10 @@ try {
 <?php if ($pembimbing): ?>
 <form action="index.php?page=admin/pembimbing_edit&id=<?php echo $id_pembimbing; ?>" method="POST">
     
-    <div class="mb-3">
-        <label for="nip" class="form-label">NIP</label>
-        <input type="text" class="form-control" id="nip" name="nip" value="<?php echo htmlspecialchars($pembimbing['nip']); ?>" required>
+   <div class="mb-3">
+        <label for="nip" class="form-label">NIP / NUPTK / ID Pegawai</label>
+        <input type="text" class="form-control" id="nip" name="nip" 
+               value="<?php echo htmlspecialchars($pembimbing['nip']); ?>" required>
     </div>
     
     <div class="mb-3">

@@ -41,7 +41,7 @@ try {
         <thead class="table-light">
             <tr>
                 <th class="text-center">No</th>
-                <th class="text-center">NIP</th>
+                <th class="text-center">No. ID Guru</th>
                 <th class="text-center">Nama Guru</th>
                 <th class="text-center">No. Telepon</th>
                 <th class="text-center">Aksi</th>

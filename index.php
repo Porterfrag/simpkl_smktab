@@ -50,7 +50,8 @@ if (in_array($page, $action_pages)) {
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap5.css">
     
     <link rel="stylesheet" href="assets/css/style.css">
-</head>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 <body style="background-color: #f4f6f9;">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
@@ -80,21 +81,27 @@ if (in_array($page, $action_pages)) {
                         <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownManajemen">
                             <li><a class="dropdown-item" href="index.php?page=admin/siswa_data">Data Siswa</a></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/siswa_import">Import Siswa (CSV)</a></li>
+                              <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/perusahaan_data">Data Perusahaan</a></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/perusahaan_import">Import Perusahaan (CSV)</a></li>
+                              <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/pembimbing_data">Data Pembimbing</a></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/pembimbing_import">Import Pembimbing (CSV)</a></li>
                         </ul>
                     </li>
                     
                     <?php 
                         $active_kegiatan = in_array($page, ['admin/plotting_data', 'admin/plotting_edit', 'admin/rekap_nilai', 'admin/rekap_absensi_harian']) ? 'active' : '';
                     ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle <?php echo $active_kegiatan; ?>" href="#" id="navbarDropdownPKL" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Kegiatan PKL
-                        </a>
-                        <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownPKL">
+                   <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Kegiatan PKL</a>
+                        <ul class="dropdown-menu shadow">
                             <li><a class="dropdown-item" href="index.php?page=admin/plotting_data">Plotting Siswa</a></li>
-                            <li><a class="dropdown-item" href="index.php?page=admin/rekap_nilai">Rekap Nilai</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/jurnal_data">Data Jurnal (Semua)</a></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/absensi_data">Data Absensi (Semua)</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/rekap_nilai">Rekap Nilai Akhir</a></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/rekap_absensi_harian">Rekap Absensi Harian</a></li>
                         </ul>
                     </li>
@@ -203,21 +210,28 @@ if (in_array($page, $action_pages)) {
 </main>
 
 <footer>
-    <p class="text-center text-muted mb-4 small">&copy; <?php echo date("Y"); ?> SMKN 1 Coding. All rights reserved.</p>
+    <p class="text-center text-muted mb-4 small">&copy; <?php echo date("Y"); ?> SMKN 1 Sungai Tabuk. All rights reserved.</p>
 </footer>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/2.0.7/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap5.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     $(document).ready(function() {
-        // Inisiasi DataTables Global (dengan opsi menonaktifkan sort di kolom aksi)
+        // 1. Inisiasi DataTables Global
         $('.datatable').DataTable({
-            "columnDefs": [ {
-                "targets": [-1], 
-                "orderable": false
-            } ]
+            "columnDefs": [ { "targets": [-1], "orderable": false } ]
+        });
+
+        // 2. Inisiasi Select2 Global
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Pilih opsi...',
+            allowClear: true
         });
     });
 </script>
