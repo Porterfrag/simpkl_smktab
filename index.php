@@ -203,7 +203,7 @@ if (in_array($page, $action_pages)) {
 </main>
 
 <footer>
-    <p class="text-center text-muted mb-4 small">&copy; <?php echo date("Y"); ?> SMKN 1 Coding. All rights reserved.</p>
+    <p class="text-center text-muted mb-4 small">&copy; <?php echo date("Y"); ?> SMKN 1 Sungai Tabuk. All rights reserved.</p>
 </footer>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
