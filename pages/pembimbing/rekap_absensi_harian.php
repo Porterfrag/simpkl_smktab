@@ -173,8 +173,7 @@ try {
                     <td class="text-start" style="min-width: 100px;">
                         <?php if ($rekap['status_absen'] == 'Belum Absen'): ?>
                             <a href="index.php?page=pembimbing/rekap_absensi_harian&aksi=tandai_alpha&id_siswa=<?php echo $rekap['id_siswa']; ?>" 
-                               class="btn btn-sm btn-danger" 
-                               onclick="return confirm('Yakin menandai siswa ini sebagai ALPHA?')">
+                               class="btn btn-sm btn-danger btn-alpha">
                                Tandai Alpha
                             </a>
                         <?php else: ?>

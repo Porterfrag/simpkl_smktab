@@ -232,7 +232,7 @@ if (in_array($page, $action_pages)) {
 <script src="https://cdn.datatables.net/2.0.7/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap5.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
         // 1. Inisiasi DataTables Global
@@ -247,7 +247,81 @@ if (in_array($page, $action_pages)) {
             placeholder: 'Pilih opsi...',
             allowClear: true
         });
+        // 3. [BARU] LOGIKA SWEETALERT UNTUK TOMBOL HAPUS
+        // Cari semua elemen dengan class 'btn-hapus'
+        $(document).on('click', '.btn-hapus', function(e) {
+            e.preventDefault(); // Mencegah link langsung jalan
+            
+            var href = $(this).attr('href'); // Ambil alamat link
+            
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Data yang dihapus tidak dapat dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545', // Warna Merah
+                cancelButtonColor: '#6c757d',  // Warna Abu
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Jika user klik Ya, pindah ke link hapus
+                    document.location.href = href;
+                }
+            });
+        });
+
+        // 3. [BARU] LOGIKA SWEETALERT UNTUK TOMBOL HAPUS
+        // Cari semua elemen dengan class 'btn-hapus'
+        $(document).on('click', '.btn-alpha', function(e) {
+            e.preventDefault(); // Mencegah link langsung jalan
+            
+            var href = $(this).attr('href'); // Ambil alamat link
+            
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Tandai siswa ini alpha ?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545', // Warna Merah
+                cancelButtonColor: '#6c757d',  // Warna Abu
+                confirmButtonText: 'Ya, tandai alpha!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Jika user klik Ya, pindah ke link hapus
+                    document.location.href = href;
+                }
+            });
+        });
     });
+
+    // 4. [BONUS] SWEETALERT UNTUK PESAN PHP (FLASH MESSAGE)
+        // Kita cek apakah ada elemen alert sukses/gagal di halaman
+        
+        var pesanSukses = $('.alert-success').text();
+        var pesanError = $('.alert-danger').text();
+
+        if(pesanSukses){
+             Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: pesanSukses,
+                timer: 3000, // Tutup otomatis setelah 3 detik
+                showConfirmButton: false
+            });
+            // Sembunyikan alert bawaan bootstrap agar tidak dobel
+            $('.alert-success').hide(); 
+        }
+
+        if(pesanError){
+             Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: pesanError
+            });
+            $('.alert-danger').hide();
+        }
 </script>
 <div id="ios-install-prompt" class="fixed-bottom p-3 m-3 bg-white rounded shadow-lg border" style="display: none; z-index: 9999;">
     <div class="d-flex align-items-start">

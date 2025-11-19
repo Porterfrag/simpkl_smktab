@@ -1,16 +1,25 @@
 <?php
+// (Pastikan file ini hanya di-include oleh index.php)
+// session_start(); // (Sudah dimulai di index.php)
 
+// Ambil id_siswa dari session
 if (!isset($_SESSION['id_ref']) || $_SESSION['role'] != 'siswa') {
     die("Akses tidak sah!");
 }
 $id_siswa = $_SESSION['id_ref'];
 
+// (Asumsi $pdo dan $SETTINGS sudah ada dari index.php)
 
+// ==========================================================
+// --- LOGIKA PENGAMBILAN BULAN & TAHUN ---
+// ==========================================================
 $bulan_pilihan = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
 $tahun_pilihan = isset($_GET['tahun']) ? $_GET['tahun'] : date('Y');
 $nama_bulan_ini = date('F Y', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
+// ==========================================================
 
-$hari_kerja_perusahaan = []; 
+// --- 1. AMBIL NAMA SISWA & HARI KERJA PERUSAHAAN ---
+$hari_kerja_perusahaan = []; // Default kosong
 try {
     $sql_info = "SELECT s.nama_lengkap, p.hari_kerja 
                  FROM siswa s
@@ -22,9 +31,11 @@ try {
     
     $nama_siswa = $info['nama_lengkap'];
     
+    // Ubah string "1,2,3,4,5" menjadi array [1, 2, 3, 4, 5]
     if (!empty($info['hari_kerja'])) {
         $hari_kerja_perusahaan = explode(',', $info['hari_kerja']);
     } else {
+        // Default Senin-Jumat jika belum diset
         $hari_kerja_perusahaan = [1, 2, 3, 4, 5];
     }
 
@@ -32,6 +43,7 @@ try {
     die("Error: " . $e->getMessage());
 }
 
+// --- 2. AMBIL DATA ABSENSI SESUAI BULAN PILIHAN ---
 $data_absensi_bulan_ini = [];
 try {
     $sql_absen = "SELECT DAY(tanggal) as hari, status 
@@ -55,31 +67,38 @@ try {
 }
 
 
+// --- LOGIKA KALENDER ---
 $jumlah_hari_di_bulan = date('t', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
 $hari_pertama_minggu = date('N', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
 $hari_ini = date('d');
 $bulan_ini_sekarang = date('m');
 $tahun_ini_sekarang = date('Y');
 
+// [LOGIKA BARU] AMBIL BATAS TANGGAL DARI SETTINGS
 $pkl_start = isset($SETTINGS['pkl_start_date']) ? $SETTINGS['pkl_start_date'] : '2020-01-01';
 $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '2030-12-31';
 
+// Cek apakah kalender yang dibuka adalah bulan ini
 $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == $tahun_ini_sekarang);
 ?>
 
 <style>
+    /* Container Scrollable */
     .kalender-wrap { 
         width: 100%; 
         margin-top: 20px; 
-        overflow-x: auto; 
+        overflow-x: auto; /* Scroll horizontal aktif */
         -webkit-overflow-scrolling: touch; 
     }
+    
+    /* Tabel dengan Lebar Minimal */
     .kalender-wrap table { 
         width: 100%; 
-        min-width: 700px; 
+        min-width: 700px; /* Paksa lebar agar tidak gepeng di HP */
         border-collapse: collapse; 
         table-layout: fixed; 
     }
+    
     .kalender-wrap th, .kalender-wrap td { 
         border: 1px solid #dee2e6; 
         height: 100px; 
@@ -92,17 +111,19 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
         text-align: center; 
         background-color: #0d6efd; 
         color: white; 
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.9rem;
+        font-weight: 600; 
+        text-transform: uppercase; 
+        font-size: 0.9rem; 
     }
     .kalender-wrap .nomor-tanggal { 
         font-size: 1.1rem; 
         font-weight: 700; 
         margin-bottom: 8px; 
         display: block; 
-        color: #495057;
+        color: #495057; 
     }
+    
+    /* Highlight Hari Ini */
     .kalender-wrap .hari-ini { 
         background-color: #e7f1ff !important; 
         border: 2px solid #0d6efd; 
@@ -111,8 +132,10 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
     }
     .kalender-wrap .hari-ini .nomor-tanggal { 
         color: #0d6efd; 
-        text-decoration: underline;
+        text-decoration: underline; 
     }
+
+    /* Status Badge Styles */
     .status-badge { 
         display: block; 
         padding: 4px 6px; 
@@ -120,12 +143,13 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
         text-align: center; 
         color: white; 
         font-size: 0.75rem; 
-        font-weight: 600;
+        font-weight: 600; 
         margin-top: 4px; 
         white-space: nowrap; 
-        overflow: hidden;
-        text-overflow: ellipsis;
+        overflow: hidden; 
+        text-overflow: ellipsis; 
     }
+    
     .status-hadir { background-color: #198754; }
     .status-izin { background-color: #0d6efd; }
     .status-sakit { background-color: #ffc107; color: #212529; }
@@ -133,13 +157,14 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
     .status-libur { background-color: #f8f9fa; color: #adb5bd; border: 1px solid #dee2e6; }
     .status-alpha-auto { background-color: #f8d7da; color: #842029; border: 1px solid #f5c6cb; }
     .bukan-bulan-ini { background-color: #f8f9fa; }
+    
     .form-ganti-bulan { 
         margin-bottom: 20px; 
         background: #fff; 
         padding: 15px; 
         border-radius: 8px; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+        border: 1px solid #e9ecef; 
     }
 </style>
 
@@ -191,22 +216,27 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
                     <?php
                     $hari_ke = 1; 
                     
+                    // 1. Kotak kosong awal bulan
                     for ($i = 1; $i < $hari_pertama_minggu; $i++) {
                         echo '<td class="bukan-bulan-ini"></td>';
                     }
 
+                    // 2. Loop tanggal
                     while ($hari_ke <= $jumlah_hari_di_bulan) {
                         
                         $hari_minggu_ini = date('N', mktime(0, 0, 0, $bulan_pilihan, $hari_ke, $tahun_pilihan));
                         
+                        // Format tanggal lengkap Y-m-d
                         $tanggal_loop = "$tahun_pilihan-" . str_pad($bulan_pilihan, 2, '0', STR_PAD_LEFT) . "-" . str_pad($hari_ke, 2, '0', STR_PAD_LEFT);
                         $tanggal_hari_ini = date('Y-m-d');
 
+                        // Cek apakah ini hari ini?
                         $class_hari_ini = ($is_current_month && $hari_ke == $hari_ini) ? 'hari-ini' : '';
                         
                         $content = "<span class='nomor-tanggal'>$hari_ke</span>";
                         
                         if (isset($data_absensi_bulan_ini[$hari_ke])) {
+                            // KASUS A: Ada Data
                             $status = $data_absensi_bulan_ini[$hari_ke];
                             $badge_class = 'status-' . strtolower($status);
                             if($status == 'Libur') $badge_class = 'status-libur';
@@ -214,17 +244,24 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
                             $content .= "<span class='status-badge $badge_class'>$status</span>";
                         
                         } else {
+                            // KASUS B: Kosong
                             
+                            // Cek Hari Kerja
                             if (in_array($hari_minggu_ini, $hari_kerja_perusahaan)) {
+                                // Hari Kerja
                                 
+                                // [LOGIKA BARU] Cek apakah DALAM periode PKL?
                                 $is_within_period = ($tanggal_loop >= $pkl_start && $tanggal_loop <= $pkl_end);
                                 
                                 if ($tanggal_loop < $tanggal_hari_ini && $is_within_period) {
+                                    // Tanggal lewat + Dalam Periode + Hari Kerja = Tidak Hadir
                                     $content .= "<span class='status-badge status-alpha-auto'>Tidak Hadir</span>";
                                 } elseif (!$is_within_period) {
+                                    // Di luar periode
                                     $content .= "<span class='text-muted small d-block mt-1'>-</span>";
                                 }
                             } else {
+                                // Hari Libur
                                 $content .= "<span class='status-badge status-libur'>Libur</span>";
                             }
                         }
@@ -237,6 +274,7 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
                         $hari_ke++;
                     }
 
+                    // 3. Kotak kosong akhir bulan
                     $hari_terakhir_minggu = date('N', mktime(0, 0, 0, $bulan_pilihan, $jumlah_hari_di_bulan, $tahun_pilihan));
                     if ($hari_terakhir_minggu != 7) {
                         for ($i = $hari_terakhir_minggu; $i < 7; $i++) {
@@ -255,7 +293,7 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
     <span class="badge status-hadir me-1">Hadir</span>
     <span class="badge status-izin me-1">Izin</span>
     <span class="badge status-sakit me-1">Sakit</span>
-    <span class="badge status-alpha me-1">Alpha (Manual)</span>
+    <span class="badge status-alpha me-1">Alpha</span>
     <span class="badge status-alpha-auto text-danger me-1">Tidak Hadir (Otomatis)</span>
     <span class="badge status-libur border">Libur Rutin</span>
 </div>
