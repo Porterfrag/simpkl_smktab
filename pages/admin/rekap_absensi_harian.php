@@ -1,4 +1,6 @@
 <?php
+// (Pastikan file ini hanya di-include oleh index.php)
+// Cek jika bukan admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     die("Akses dilarang!");
 }
@@ -7,11 +9,14 @@ $hari_ini = date('Y-m-d');
 $pesan_sukses = '';
 $pesan_error = '';
 
+// (Asumsi $pdo sudah ada dari index.php)
 
+// --- PROSES: TANDAI ALPHA (Aksi dari Admin) ---
 if (isset($_GET['aksi']) && $_GET['aksi'] == 'tandai_alpha' && isset($_GET['id_siswa'])) {
     $id_siswa_alpha = $_GET['id_siswa'];
     
     try {
+        // Coba INSERT data 'Alpha'
         $sql_insert_alpha = "INSERT INTO absensi (id_siswa, tanggal, status, dicatat_oleh)
                              VALUES (:id_siswa, :tanggal, 'Alpha', 'Admin')";
         $stmt_insert = $pdo->prepare($sql_insert_alpha);
@@ -29,10 +34,13 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'tandai_alpha' && isset($_GET['id_s
         }
     }
 }
+// --- AKHIR PROSES ---
 
 
+// --- AMBIL DATA UNTUK DITAMPILKAN ---
 $rekap_absensi = [];
 try {
+    // 1. Ambil SEMUA siswa, gabung dengan nama pembimbing
     $sql_siswa = "SELECT 
                     siswa.id_siswa, siswa.nama_lengkap, siswa.nis,
                     pembimbing.nama_guru 
@@ -43,6 +51,7 @@ try {
     $stmt_siswa->execute();
     $siswa_list = $stmt_siswa->fetchAll(PDO::FETCH_ASSOC);
     
+    // 2. Ambil data absensi HARI INI
     $sql_absensi = "SELECT id_siswa, status, jam_absen, keterangan 
                     FROM absensi 
                     WHERE tanggal = :tanggal";
@@ -54,6 +63,7 @@ try {
         $absensi_hari_ini[$row['id_siswa']] = $row;
     }
     
+    // 3. Gabungkan data siswa dan data absensi
     foreach ($siswa_list as $siswa) {
         $id_siswa = $siswa['id_siswa'];
         if (isset($absensi_hari_ini[$id_siswa])) {
@@ -79,18 +89,14 @@ try {
     <i class="fas fa-file-excel me-2"></i> Export Rekap Total (Semester) ke Excel
 </a>
 <?php if(!empty($pesan_sukses)): ?>
-    <div class="alert alert-success" role="alert">
-        <?php echo $pesan_sukses; ?>
-    </div>
+    <div class="alert alert-success" role="alert"><?php echo $pesan_sukses; ?></div>
 <?php endif; ?>
 <?php if(!empty($pesan_error)): ?>
-    <div class="alert alert-danger" role="alert">
-        <?php echo $pesan_error; ?>
-    </div>
+    <div class="alert alert-danger" role="alert"><?php echo $pesan_error; ?></div>
 <?php endif; ?>
 
 <div class="table-responsive">
-    <table class="table table-striped table-hover table-bordered">
+    <table class="table table-striped table-hover table-bordered <?php echo (!empty($rekap_absensi) ? 'datatable' : ''); ?>">
         <thead class="table-light">
             <tr>
                 <th>No</th>
@@ -99,48 +105,47 @@ try {
                 <th>Status Hari Ini</th>
                 <th>Jam Absen</th>
                 <th>Keterangan</th>
-                <th>Aksi</th>
+                <th style="min-width: 100px;">Aksi</th>
             </tr>
         </thead>
         <tbody>
             <?php $no = 1; ?>
             <?php foreach ($rekap_absensi as $rekap): ?>
                 <tr>
-                    <td><?php echo $no++; ?></td>
-                    <td>
-                        <?php echo htmlspecialchars($rekap['nama_lengkap']); ?>
-                        <br><small>(NIS: <?php echo htmlspecialchars($rekap['nis']); ?>)</small>
+                    <td class="text-start"><?php echo $no++; ?></td>
+                    <td class="text-start">
+                        <strong><?php echo htmlspecialchars($rekap['nama_lengkap']); ?></strong>
+                        <br><small class="text-muted">(NIS: <?php echo htmlspecialchars($rekap['nis']); ?>)</small>
                     </td>
-                    <td>
+                    <td class="text-start">
                         <?php echo htmlspecialchars(isset($rekap['nama_guru']) ? $rekap['nama_guru'] : '-'); ?>
                     </td>
                     
-                    <td>
+                    <td class="text-start">
                         <?php
                             $status = $rekap['status_absen'];
-                            $warna = 'black';
-                            if ($status == 'Izin') $warna = 'blue';
-                            if ($status == 'Sakit') $warna = 'red';
-                            if ($status == 'Alpha') $warna = 'darkred';
-                            if ($status == 'Belum Absen') $warna = 'grey';
-                            if ($status == 'Hadir') $warna = 'green';
+                            $class_badge = 'text-black';
+                            if ($status == 'Izin') $class_badge = 'bg-primary text-white';
+                            if ($status == 'Sakit') $class_badge = 'bg-warning text-dark';
+                            if ($status == 'Alpha') $class_badge = 'bg-danger text-white';
+                            if ($status == 'Belum Absen') $class_badge = 'bg-secondary text-white';
+                            if ($status == 'Hadir') $class_badge = 'bg-success text-white';
                         ?>
-                        <strong style="color: <?php echo $warna; ?>;"><?php echo htmlspecialchars($status); ?></strong>
+                        <span class="badge <?php echo $class_badge; ?>"><?php echo htmlspecialchars($status); ?></span>
                     </td>
 
-                    <td><?php echo htmlspecialchars($rekap['jam_absen']); ?></td>
-                    <td><?php echo htmlspecialchars($rekap['keterangan']); ?></td>
+                    <td class="text-start"><?php echo htmlspecialchars($rekap['jam_absen']); ?></td>
+                    <td class="text-start"><?php echo htmlspecialchars($rekap['keterangan']); ?></td>
                     
-                    <td>
+                    <td class="text-start">
                         <?php if ($rekap['status_absen'] == 'Belum Absen'): ?>
                             <a href="index.php?page=admin/rekap_absensi_harian&aksi=tandai_alpha&id_siswa=<?php echo $rekap['id_siswa']; ?>" 
                                class="btn btn-sm btn-danger" 
-                               onclick="return confirm('Yakin menandai siswa ini sebagai ALPHA?')"
-                               style="font-size: 0.85em;">
+                               onclick="return confirm('Yakin menandai siswa ini sebagai ALPHA?')">
                                Tandai Alpha
                             </a>
                         <?php else: ?>
-                            <span class="text-muted">(Sudah Terekam)</span>
+                            <span class="text-muted small">(Sudah Terekam)</span>
                         <?php endif; ?>
                     </td>
                 </tr>
