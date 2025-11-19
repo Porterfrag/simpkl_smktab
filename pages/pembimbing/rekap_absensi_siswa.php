@@ -66,9 +66,18 @@ try {
 }
 ?>
 
-<a href="index.php?page=pembimbing/validasi_daftar_siswa" class="btn btn-sm btn-secondary mb-3">&larr; Kembali ke Daftar Siswa</a>
-<h2 class="mb-4">Rekap Absensi Siswa: <?php echo htmlspecialchars($nama_siswa); ?></h2>
-<p>Total hari terdata: <strong><?php echo $total_hari; ?></strong> hari.</p>
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a href="index.php?page=pembimbing/validasi_daftar_siswa" class="btn btn-sm btn-secondary mb-2">&larr; Kembali ke Daftar</a>
+        <h2 class="mb-0">Rekap Absensi: <?php echo htmlspecialchars($nama_siswa); ?></h2>
+        <p class="text-muted mt-1">Total hari terdata: <strong><?php echo $total_hari; ?></strong> hari.</p>
+    </div>
+    <div>
+        <a href="pages/pembimbing/export_absensi_detail.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-success">
+            <i class="fas fa-file-excel me-2"></i> Export Excel
+        </a>
+    </div>
+</div>
 
 <hr>
 <h3 class="mt-4 mb-3">Ringkasan Kehadiran</h3>
