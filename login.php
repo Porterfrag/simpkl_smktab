@@ -3,6 +3,7 @@ session_start();
 require 'config/koneksi.php';
 require 'core/auto_alpha.php'; 
 
+// --- 1. LOGIKA CEK COOKIE (AUTO LOGIN) ---
 if (isset($_COOKIE['id']) && isset($_COOKIE['key'])) {
     $id = $_COOKIE['id'];
     $key = $_COOKIE['key'];
@@ -23,8 +24,7 @@ if (isset($_COOKIE['id']) && isset($_COOKIE['key'])) {
                 jalankan_auto_alpha($pdo);
             }
         }
-    } catch (PDOException $e) {
-    }
+    } catch (PDOException $e) {}
 }
 
 if (isset($_SESSION['user_id'])) {
@@ -34,6 +34,7 @@ if (isset($_SESSION['user_id'])) {
 
 $error = '';
 
+// --- 2. LOGIKA LOGIN SUBMIT ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
     $password = $_POST['password'];
@@ -45,8 +46,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->execute(['username' => $username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        // VERIFIKASI PASSWORD (BCRYPT)
         if ($user && password_verify($password, $user['password'])) {
-            
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
@@ -78,130 +79,77 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Sistem PKL</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .login-card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            overflow: hidden;
-        }
-        .form-control {
-            background-color: #f3f4f6;
-            border: none;
-            padding: 0.75rem 1rem;
-        }
-        .form-control:focus {
-            background-color: #fff;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-        }
-        .btn-login {
-            background: linear-gradient(to right, #2563eb, #1e40af);
-            border: none;
-            padding: 0.75rem;
-            transition: transform 0.2s;
-        }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(to right, #1d4ed8, #1e3a8a);
-        }
-        .right-side-bg {
-            background: linear-gradient(135deg, #2563eb 0%, #3730a3 100%);
-        }
-        .form-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+        body { font-family: 'Inter', sans-serif; }
     </style>
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d6efd">
-<link rel="apple-touch-icon" href="assets/images/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <meta name="apple-mobile-web-app-title" content="SIMPKL">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('PWA Service Worker registered!', reg))
-        .catch(err => console.log('PWA Error:', err));
-    });
-  }
-</script>
 </head>
-<body>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
 
-    <div class="min-vh-100 d-flex align-items-center justify-center py-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <div class="card login-card">
-                        <div class="row g-0">
-                            
-                            <div class="col-md-6 bg-white p-5">
-                                <div class="text-center mb-4">
-                                    <img src="assets/images/logo-smk.png" alt="Logo Sekolah" style="width: 80px; height: auto;" class="mx-auto d-block">
-                                </div>
-                                <h2 class="h3 fw-bold text-dark text-center mb-5">SIMPKL SMKTAB</h2>
+    <div class="w-full max-w-4xl p-4">
+        <div class="bg-white rounded-2xl shadow-xl flex overflow-hidden">
 
-                                <form action="login.php" method="POST">
-                                    <?php if(!empty($error)): ?>
-                                        <div class="alert alert-danger border-danger text-danger fade show" role="alert">
-                                            <?php echo htmlspecialchars($error); ?>
-                                        </div>
-                                    <?php endif; ?>
+            <div class="w-full md:w-1/2 p-8 md:p-12">
+                <div class="text-center mb-6">
+                    <img src="assets/images/logo-smk.png" alt="Logo Sekolah" class="w-20 h-auto mx-auto mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Login SIMPKL</h2>
+                    <p class="text-gray-500 text-sm mt-1">Masukkan kredensial akun Anda</p>
+                </div>
 
-                                    <div class="mb-4">
-                                        <label for="username" class="form-label">Username</label>
-                                        <input type="text" class="form-control rounded-3" id="username" name="username" placeholder="Username" required>
-                                    </div>
+                <form action="login.php" method="POST">
+                    <?php if(!empty($error)): ?>
+                    <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded mb-6 text-sm" role="alert">
+                        <p><?php echo htmlspecialchars($error); ?></p>
+                    </div>
+                    <?php endif; ?>
 
-                                    <div class="mb-4">
-                                        <label for="password" class="form-label">Password</label>
-                                        <input type="password" class="form-control rounded-3" id="password" name="password" placeholder="Password" required>
-                                    </div>
-
-                                    <div class="d-flex justify-content-between align-items-center mb-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="remember-me" name="remember">
-                                            <label class="form-check-label small text-secondary" for="remember-me">
-                                                Ingat Saya
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-primary btn-login text-white fw-bold rounded-3 shadow">
-                                            Login
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div class="col-md-6 right-side-bg d-flex flex-column align-items-center justify-content-center p-5 text-white text-center">
-                                <h2 class="display-6 fw-bold mb-3">Selamat Datang!</h2>
-                                <p class="lead fs-6">Silakan login untuk mengakses SIMPKL SMKTAB.</p>
-                            </div>
-
+                    <div class="space-y-5">
+                        <div>
+                            <label for="username" class="text-sm font-medium text-gray-700 block mb-1">Username</label>
+                            <input id="username" name="username" type="text" placeholder="Username" required 
+                                class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-0 transition duration-200">
                         </div>
+                        <div>
+                            <label for="password" class="text-sm font-medium text-gray-700 block mb-1">Password</label>
+                            <input id="password" name="password" type="password" placeholder="••••••••" required 
+                                class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-0 transition duration-200">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-6">
+                        <label class="flex items-center cursor-pointer">
+                            <input id="remember-me" name="remember" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <span class="ml-2 text-sm text-gray-600">Ingat Saya</span>
+                        </label>
+                        </div>
+                    
+                    <button type="submit" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-0.5">
+                        Masuk Aplikasi
+                    </button>
+                </form>
+                
+                <p class="text-center text-gray-400 text-xs mt-8">&copy; <?php echo date("Y"); ?> SMKN 1 Sungai Tabuk</p>
+            </div>
+
+            <div class="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 to-indigo-900 items-center justify-center p-12 text-white text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                     <div class="absolute top-10 left-10 w-20 h-20 bg-white rounded-full blur-2xl"></div>
+                     <div class="absolute bottom-10 right-10 w-32 h-32 bg-white rounded-full blur-3xl"></div>
+                </div>
+
+                <div class="relative z-10">
+                    <h2 class="text-4xl font-extrabold mb-4">Selamat Datang!</h2>
+                    <p class="text-blue-100 text-lg leading-relaxed">Sistem Informasi Praktik Kerja Lapangan<br>SMK Negeri 1 Sungai Tabuk.</p>
+                    <div class="mt-8">
+                         <span class="inline-block px-4 py-2 border border-white/30 rounded-full text-sm backdrop-blur-sm">v1.0 Release</span>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

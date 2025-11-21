@@ -10,6 +10,17 @@ if (!isset($_SESSION['user_id'])) {
 require 'config/koneksi.php';
 require 'core/functions.php'; 
 
+// HITUNG NOTIFIKASI BELUM DIBACA (Untuk user yang login)
+$notif_count = 0;
+$notif_list = [];
+if (isset($_SESSION['user_id'])) {
+    $uid = $_SESSION['user_id'];
+    $stmt_n = $pdo->prepare("SELECT * FROM notifikasi WHERE id_user = ? AND status = 'unread' ORDER BY tanggal DESC");
+    $stmt_n->execute([$uid]);
+    $notif_list = $stmt_n->fetchAll(PDO::FETCH_ASSOC);
+    $notif_count = count($notif_list);
+}
+
 $role = $_SESSION['role'];
 
 $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
@@ -184,9 +195,41 @@ if (in_array($page, $action_pages)) {
                 <?php endif; ?>
             </ul>
             
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+           <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
+                
+                <li class="nav-item dropdown me-3">
+                    <a class="nav-link position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell fa-lg"></i>
+                        <?php if ($notif_count > 0): ?>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                <?php echo $notif_count; ?>
+                            </span>
+                        <?php endif; ?>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                        <li><h6 class="dropdown-header fw-bold">Notifikasi</h6></li>
+                        <li><hr class="dropdown-divider"></li>
+                        
+                        <?php if (empty($notif_list)): ?>
+                            <li><a class="dropdown-item text-muted text-center small py-3" href="#">Tidak ada notifikasi baru</a></li>
+                        <?php else: ?>
+                            <?php foreach ($notif_list as $notif): ?>
+                                <li>
+                                    <a class="dropdown-item" href="baca_notif.php?id=<?php echo $notif['id_notif']; ?>&link=<?php echo urlencode($notif['link']); ?>">
+                                        <small class="fw-bold d-block text-dark"><?php echo htmlspecialchars($notif['judul']); ?></small>
+                                        <span class="d-block text-muted small text-truncate"><?php echo htmlspecialchars($notif['pesan']); ?></span>
+                                        <span class="text-xs text-secondary"><?php echo date('d M H:i', strtotime($notif['tanggal'])); ?></span>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <li><a class="dropdown-item text-center text-primary small fw-bold mt-2" href="index.php?page=notifikasi_semua">Lihat Semua Notifikasi</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($page == 'profil') ? 'active' : ''; ?>" href="index.php?page=profil">Profil Saya</a>
+                    <a class="nav-link" href="index.php?page=profil">Profil Saya</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="logout.php">Logout</a>

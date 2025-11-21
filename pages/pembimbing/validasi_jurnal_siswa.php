@@ -94,6 +94,20 @@ if (isset($_POST['status_validasi'])) {
                 ':id_jurnal' => $id_jurnal,
                 ':id_siswa' => $id_siswa
             ]);
+
+            // [BARU] --- KIRIM NOTIFIKASI KE SISWA ---
+            // 1. Ambil ID User si Siswa (karena tabel notifikasi butuh id_user, bukan id_siswa)
+            $stmt_u = $pdo->prepare("SELECT id FROM users WHERE role='siswa' AND id_ref = ?");
+            $stmt_u->execute([$id_siswa]);
+            $id_user_siswa = $stmt_u->fetchColumn();
+
+            if ($id_user_siswa) {
+                $judul_notif = "Jurnal " . $status_validasi;
+                $isi_notif = "Jurnal Anda tanggal " . date('d/m') . " telah " . strtolower($status_validasi) . " oleh pembimbing.";
+                $link_notif = "index.php?page=siswa/jurnal_lihat";
+                
+                kirim_notifikasi($pdo, $id_user_siswa, $judul_notif, $isi_notif, $link_notif);
+            }
             
             $pesan_sukses_jurnal = "Jurnal berhasil divalidasi!";
             

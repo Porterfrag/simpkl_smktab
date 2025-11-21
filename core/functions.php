@@ -35,4 +35,20 @@ function compressAndUpload($source, $destination, $quality) {
 
     return true;
 }
+
+// --- FUNGSI KIRIM NOTIFIKASI ---
+function kirim_notifikasi($pdo, $id_user, $judul, $pesan, $link = '#') {
+    try {
+        $sql = "INSERT INTO notifikasi (id_user, judul, pesan, link) VALUES (:id, :judul, :pesan, :link)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':id' => $id_user,
+            ':judul' => $judul,
+            ':pesan' => $pesan,
+            ':link' => $link
+        ]);
+    } catch (PDOException $e) {
+        // Silent error (jangan sampai aplikasi crash cuma gara-gara notif gagal)
+    }
+}
 ?>
