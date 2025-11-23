@@ -138,6 +138,14 @@ try {
     </div>
 </div>
 
+<div id="installContainer" class="alert alert-primary shadow-sm border-0 d-flex align-items-center justify-content-between mb-4" role="alert" style="display: none;">
+    <div>
+        <i class="fas fa-mobile-alt fa-lg me-2"></i>
+        <strong>Install Aplikasi?</strong> <span class="small">Akses lebih cepat tanpa browser.</span>
+    </div>
+    <button id="btnInstall" class="btn btn-sm btn-light text-primary fw-bold rounded-pill px-3">Install</button>
+</div>
+
 <?php if (!empty($info_cards)): ?>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="text-muted fw-bold text-uppercase small ls-1 mb-0">Ringkasan Data</h5>
@@ -350,5 +358,54 @@ $(document).ready(function() {
             });
         }
     });
+});
+</script>
+
+<script>
+// Variabel untuk menyimpan event install
+let deferredPrompt;
+const installContainer = document.getElementById('installContainer');
+const btnInstall = document.getElementById('btnInstall');
+
+// 1. Browser mendeteksi website ini BISA diinstall (Event: beforeinstallprompt)
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Mencegah browser menampilkan pop-up default yang kadang tidak muncul
+    e.preventDefault();
+    
+    // Simpan event untuk dipicu nanti
+    deferredPrompt = e;
+    
+    // TAMPILKAN tombol install buatan kita
+    if (installContainer) {
+        installContainer.style.display = 'flex';
+    }
+    console.log("PWA siap diinstall!");
+});
+
+// 2. Saat user klik tombol Install
+if (btnInstall) {
+    btnInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // Picu prompt asli browser
+            deferredPrompt.prompt();
+            
+            // Tunggu respon user (Install / Batal)
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response: ${outcome}`);
+            
+            // Hapus event karena sudah dipakai
+            deferredPrompt = null;
+            
+            // Sembunyikan tombol lagi
+            installContainer.style.display = 'none';
+        }
+    });
+}
+
+// 3. Jika sudah berhasil diinstall (App Installed)
+window.addEventListener('appinstalled', () => {
+    // Sembunyikan tombol
+    if (installContainer) installContainer.style.display = 'none';
+    console.log('PWA Installed');
 });
 </script>
