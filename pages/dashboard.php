@@ -1,5 +1,4 @@
 <?php
-// (Pastikan file ini hanya di-include oleh index.php)
 $role = $_SESSION['role'];
 $id_ref = $_SESSION['id_ref']; 
 $username = $_SESSION['username'];
@@ -12,28 +11,23 @@ $pengumuman_list = [];
 try {
     $hari_ini = date('Y-m-d');
     
-    // 1. AMBIL PENGUMUMAN (Global)
     $stmt = $pdo->query("SELECT * FROM pengumuman ORDER BY tanggal_post DESC LIMIT 3");
     $pengumuman_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. LOGIKA ADMIN
     if ($role == 'admin') {
         $nama_display = 'Administrator';
         
-        // Hitung Data
         $c_siswa = $pdo->query("SELECT COUNT(*) FROM siswa")->fetchColumn();
         $c_dudi = $pdo->query("SELECT COUNT(*) FROM perusahaan")->fetchColumn();
         $c_guru = $pdo->query("SELECT COUNT(*) FROM pembimbing")->fetchColumn();
         $c_pending = $pdo->query("SELECT COUNT(*) FROM jurnal_harian WHERE status_validasi = 'Pending'")->fetchColumn();
         $c_unplot = $pdo->query("SELECT COUNT(*) FROM siswa WHERE id_perusahaan IS NULL")->fetchColumn();
 
-        // Data Siswa Belum Absen (Semua)
         $stmt_ba = $pdo->prepare("SELECT s.nama_lengkap, s.kelas, p.nama_perusahaan FROM siswa s LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan WHERE s.id_siswa NOT IN (SELECT id_siswa FROM absensi WHERE tanggal = ?) ORDER BY s.kelas ASC");
         $stmt_ba->execute([$hari_ini]);
         $siswa_belum_absen = $stmt_ba->fetchAll(PDO::FETCH_ASSOC);
         $c_belum_absen = count($siswa_belum_absen);
 
-        // Konfigurasi Kartu
         $info_cards = [
             ['title' => 'Total Siswa', 'value' => $c_siswa, 'icon' => 'fa-users', 'color' => 'primary', 'link' => 'index.php?page=admin/siswa_data'],
             ['title' => 'Mitra DUDI', 'value' => $c_dudi, 'icon' => 'fa-building', 'color' => 'info', 'link' => 'index.php?page=admin/perusahaan_data'],
@@ -42,14 +36,11 @@ try {
             ['title' => 'Belum Plotting', 'value' => $c_unplot, 'icon' => 'fa-user-slash', 'color' => 'secondary', 'link' => 'index.php?page=admin/plotting_data']
         ];
 
-    // 3. LOGIKA PEMBIMBING
     } elseif ($role == 'pembimbing') {
-        // Nama Guru
         $stmt = $pdo->prepare("SELECT nama_guru FROM pembimbing WHERE id_pembimbing = ?");
         $stmt->execute([$id_ref]);
         $nama_display = $stmt->fetchColumn();
 
-        // Hitung Data
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM siswa WHERE id_pembimbing = ?");
         $stmt->execute([$id_ref]);
         $c_siswa = $stmt->fetchColumn();
@@ -58,7 +49,6 @@ try {
         $stmt->execute([$id_ref]);
         $c_pending = $stmt->fetchColumn();
 
-        // Data Belum Absen (Khusus Bimbingan)
         $stmt_ba = $pdo->prepare("SELECT s.nama_lengkap, s.kelas, p.nama_perusahaan FROM siswa s LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan WHERE s.id_pembimbing = ? AND s.id_siswa NOT IN (SELECT id_siswa FROM absensi WHERE tanggal = ?) ORDER BY s.nama_lengkap ASC");
         $stmt_ba->execute([$id_ref, $hari_ini]);
         $siswa_belum_absen = $stmt_ba->fetchAll(PDO::FETCH_ASSOC);
@@ -69,7 +59,6 @@ try {
             ['title' => 'Jurnal Pending', 'value' => $c_pending, 'icon' => 'fa-file-signature', 'color' => 'warning', 'link' => 'index.php?page=pembimbing/validasi_daftar_siswa']
         ];
 
-    // 4. LOGIKA SISWA
     } elseif ($role == 'siswa') {
         $stmt = $pdo->prepare("SELECT s.nama_lengkap, p.nama_perusahaan, g.nama_guru FROM siswa s LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan LEFT JOIN pembimbing g ON s.id_pembimbing = g.id_pembimbing WHERE s.id_siswa = ?");
         $stmt->execute([$id_ref]);
@@ -89,6 +78,15 @@ try {
 ?>
 
 <style>
+    /* --- NEW: Background Pattern Style --- */
+    body {
+        /* Light blue-grey base */
+        background-color: #f5f7fa; 
+        /* Radial Dot Pattern */
+        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+        background-size: 24px 24px;
+    }
+
     .stat-card {
         transition: all 0.3s ease;
         border: none;
@@ -96,10 +94,12 @@ try {
         background: #fff;
         position: relative;
         overflow: hidden;
+        /* Added stronger shadow to pop against pattern */
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
     }
     .icon-box {
         width: 50px; height: 50px;
@@ -116,15 +116,17 @@ try {
     .bg-soft-secondary { background-color: rgba(108, 117, 125, 0.1); color: #6c757d; }
 
     .welcome-banner {
-        background: linear-gradient(45deg, #0d6efd, #0dcaf0);
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
         color: white;
         border-radius: 15px;
         padding: 2rem;
         margin-bottom: 2rem;
+        position: relative;
+        z-index: 1;
     }
 </style>
 
-<div class="welcome-banner shadow-sm">
+<div class="welcome-banner shadow">
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h2 class="fw-bold mb-1">Halo, <?php echo htmlspecialchars($nama_display); ?>! 👋</h2>
@@ -145,7 +147,7 @@ try {
         <?php foreach ($info_cards as $card): ?>
             <div class="col-12 col-sm-6 col-xl-3"> 
                 <a href="<?php echo $card['link']; ?>" class="text-decoration-none">
-                    <div class="card stat-card h-100 shadow-sm">
+                    <div class="card stat-card h-100">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -164,7 +166,7 @@ try {
 
         <?php if ($role == 'admin' || $role == 'pembimbing'): ?>
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card stat-card h-100 shadow-sm" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalBelumAbsen">
+            <div class="card stat-card h-100" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalBelumAbsen">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>

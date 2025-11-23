@@ -53,13 +53,9 @@ if (in_array($page, $action_pages)) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap5.css">
-    
     <link rel="stylesheet" href="assets/css/style.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
@@ -195,39 +191,7 @@ if (in_array($page, $action_pages)) {
                 <?php endif; ?>
             </ul>
             
-           <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-center">
-                
-                <li class="nav-item dropdown me-3">
-                    <a class="nav-link position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-bell fa-lg"></i>
-                        <?php if ($notif_count > 0): ?>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                                <?php echo $notif_count; ?>
-                            </span>
-                        <?php endif; ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 300px; max-height: 400px; overflow-y: auto;">
-                        <li><h6 class="dropdown-header fw-bold">Notifikasi</h6></li>
-                        <li><hr class="dropdown-divider"></li>
-                        
-                        <?php if (empty($notif_list)): ?>
-                            <li><a class="dropdown-item text-muted text-center small py-3" href="#">Tidak ada notifikasi baru</a></li>
-                        <?php else: ?>
-                            <?php foreach ($notif_list as $notif): ?>
-                                <li>
-                                    <a class="dropdown-item" href="baca_notif.php?id=<?php echo $notif['id_notif']; ?>&link=<?php echo urlencode($notif['link']); ?>">
-                                        <small class="fw-bold d-block text-dark"><?php echo htmlspecialchars($notif['judul']); ?></small>
-                                        <span class="d-block text-muted small text-truncate"><?php echo htmlspecialchars($notif['pesan']); ?></span>
-                                        <span class="text-xs text-secondary"><?php echo date('d M H:i', strtotime($notif['tanggal'])); ?></span>
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <li><a class="dropdown-item text-center text-primary small fw-bold mt-2" href="index.php?page=notifikasi_semua">Lihat Semua Notifikasi</a></li>
-                    </ul>
-                </li>
+           <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-start">
                 <li class="nav-item">
                     <a class="nav-link" href="index.php?page=profil">Profil Saya</a>
                 </li>

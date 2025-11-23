@@ -45,6 +45,9 @@ try {
 
 // --- 2. AMBIL DATA ABSENSI SESUAI BULAN PILIHAN ---
 $data_absensi_bulan_ini = [];
+// Variabel untuk Dashboard Ringkasan
+$summary = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alpha' => 0];
+
 try {
     $sql_absen = "SELECT DAY(tanggal) as hari, status 
                   FROM absensi 
@@ -60,6 +63,11 @@ try {
     
     while ($row = $stmt_absen->fetch(PDO::FETCH_ASSOC)) {
         $data_absensi_bulan_ini[$row['hari']] = $row['status'];
+        
+        // Hitung ringkasan untuk dashboard
+        if(isset($summary[$row['status']])) {
+            $summary[$row['status']]++;
+        }
     }
 
 } catch (PDOException $e) {
@@ -83,100 +91,140 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
 ?>
 
 <style>
-    /* Container Scrollable */
-    .kalender-wrap { 
-        width: 100%; 
-        margin-top: 20px; 
-        overflow-x: auto; /* Scroll horizontal aktif */
-        -webkit-overflow-scrolling: touch; 
+    /* Wrapper responsive */
+    .calendar-container {
+        max-width: 100%;
+        margin: 0 auto;
     }
     
-    /* Tabel dengan Lebar Minimal */
-    .kalender-wrap table { 
-        width: 100%; 
-        min-width: 700px; /* Paksa lebar agar tidak gepeng di HP */
-        border-collapse: collapse; 
-        table-layout: fixed; 
+    /* Summary Cards (Dashboard Mini) */
+    .summary-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px 5px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border: 1px solid #f0f0f0;
+        height: 100%;
+    }
+    .summary-count { font-size: 1.2rem; font-weight: 800; display: block; line-height: 1.2; }
+    .summary-label { font-size: 0.7rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Grid Header (Mon, Tue, etc) */
+    .calendar-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #6c757d;
+        padding-bottom: 8px;
+        margin-top: 15px;
     }
     
-    .kalender-wrap th, .kalender-wrap td { 
-        border: 1px solid #dee2e6; 
-        height: 100px; 
-        vertical-align: top; 
-        padding: 8px; 
-        background-color: white;
-    }
-    .kalender-wrap th { 
-        height: 40px; 
-        text-align: center; 
-        background-color: #0d6efd; 
-        color: white; 
-        font-weight: 600; 
-        text-transform: uppercase; 
-        font-size: 0.9rem; 
-    }
-    .kalender-wrap .nomor-tanggal { 
-        font-size: 1.1rem; 
-        font-weight: 700; 
-        margin-bottom: 8px; 
-        display: block; 
-        color: #495057; 
-    }
-    
-    /* Highlight Hari Ini */
-    .kalender-wrap .hari-ini { 
-        background-color: #e7f1ff !important; 
-        border: 2px solid #0d6efd; 
-        position: relative;
-        z-index: 1;
-    }
-    .kalender-wrap .hari-ini .nomor-tanggal { 
-        color: #0d6efd; 
-        text-decoration: underline; 
+    /* Grid Body */
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px; /* Jarak antar kotak */
     }
 
-    /* Status Badge Styles */
-    .status-badge { 
-        display: block; 
-        padding: 4px 6px; 
-        border-radius: 4px; 
-        text-align: center; 
-        color: white; 
-        font-size: 0.75rem; 
-        font-weight: 600; 
-        margin-top: 4px; 
-        white-space: nowrap; 
-        overflow: hidden; 
-        text-overflow: ellipsis; 
+    /* Individual Day Cell */
+    .day-cell {
+        aspect-ratio: 1 / 1; /* Kotak selalu persegi */
+        background-color: #fff;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #444;
+        border: 1px solid #eaeaea;
+        transition: all 0.2s;
     }
     
-    .status-hadir { background-color: #198754; }
-    .status-izin { background-color: #0d6efd; }
-    .status-sakit { background-color: #ffc107; color: #212529; }
-    .status-alpha { background-color: #dc3545; }
-    .status-libur { background-color: #f8f9fa; color: #adb5bd; border: 1px solid #dee2e6; }
-    .status-alpha-auto { background-color: #f8d7da; color: #842029; border: 1px solid #f5c6cb; }
-    .bukan-bulan-ini { background-color: #f8f9fa; }
+    .day-cell.empty { background: transparent; border: none; }
+
+    /* Status Colors (Backgrounds) */
+    .day-cell.status-hadir { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+    .day-cell.status-izin { background-color: #cfe2ff; color: #084298; border-color: #b6d4fe; }
+    .day-cell.status-sakit { background-color: #fff3cd; color: #664d03; border-color: #ffecb5; }
+    .day-cell.status-alpha { background-color: #f8d7da; color: #842029; border-color: #f5c6cb; }
+    .day-cell.status-libur { background-color: #f8f9fa; color: #adb5bd; }
     
-    .form-ganti-bulan { 
-        margin-bottom: 20px; 
-        background: #fff; 
-        padding: 15px; 
-        border-radius: 8px; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-        border: 1px solid #e9ecef; 
+    /* Auto Alpha (Dashed Red) */
+    .day-cell.status-missing { 
+        background-color: #fff; 
+        border: 2px dashed #dc3545; 
+        color: #dc3545;
+    }
+
+    /* Hari Ini Highlight */
+    .day-cell.today {
+        box-shadow: 0 0 0 2px #0d6efd; /* Ring luar */
+        z-index: 2;
+        font-weight: 800;
+    }
+
+    /* Text Status inside cell (Hidden on very small screens) */
+    .cell-status-text {
+        font-size: 0.6rem;
+        margin-top: 1px;
+        font-weight: normal;
+        display: block;
+    }
+    
+    /* Filter Area styling */
+    .filter-card {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        border: 1px solid #e9ecef;
     }
 </style>
 
-<h2 class="mb-4">Kalender Absensi</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="m-0 fw-bold text-dark">Absensi Saya</h4>
+</div>
 
-<div class="form-ganti-bulan">
-    <form action="index.php" method="GET" class="row g-2 align-items-center">
+<div class="row g-2 mb-4">
+    <div class="col-3">
+        <div class="summary-card">
+            <span class="summary-count text-success"><?php echo $summary['Hadir']; ?></span>
+            <span class="summary-label">Hadir</span>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="summary-card">
+            <span class="summary-count text-primary"><?php echo $summary['Izin']; ?></span>
+            <span class="summary-label">Izin</span>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="summary-card">
+            <span class="summary-count text-warning"><?php echo $summary['Sakit']; ?></span>
+            <span class="summary-label">Sakit</span>
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="summary-card">
+            <span class="summary-count text-danger"><?php echo $summary['Alpha']; ?></span>
+            <span class="summary-label">Alpha</span>
+        </div>
+    </div>
+</div>
+
+<div class="filter-card">
+    <form action="index.php" method="GET" class="row g-2 align-items-end">
         <input type="hidden" name="page" value="siswa/absensi_kalender">
         
-        <div class="col-auto"><label class="fw-bold">Filter:</label></div>
-        <div class="col-auto">
-            <select name="bulan" class="form-select form-select-sm">
+        <div class="col-5">
+            <label class="small text-muted mb-1">Bulan</label>
+            <select name="bulan" class="form-select form-select-sm" onchange="this.form.submit()">
                 <?php
                 for ($i = 1; $i <= 12; $i++) {
                     $sel = ($i == $bulan_pilihan) ? 'selected' : '';
@@ -185,8 +233,9 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
                 ?>
             </select>
         </div>
-        <div class="col-auto">
-            <select name="tahun" class="form-select form-select-sm">
+        <div class="col-4">
+            <label class="small text-muted mb-1">Tahun</label>
+            <select name="tahun" class="form-select form-select-sm" onchange="this.form.submit()">
                 <?php
                 for ($i = date('Y')-1; $i <= date('Y')+1; $i++) {
                     $sel = ($i == $tahun_pilihan) ? 'selected' : '';
@@ -195,105 +244,90 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
                 ?>
             </select>
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary btn-sm">Tampilkan</button>
+        <div class="col-3 d-grid">
+             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-sync"></i></button>
         </div>
     </form>
 </div>
 
-<h4 class="mb-3 text-primary"><i class="fas fa-calendar-alt me-2"></i><?php echo $nama_bulan_ini; ?></h4>
+<div class="calendar-container">
+    <h6 class="text-center mb-0 fw-bold text-uppercase text-primary">
+        <?php echo $nama_bulan_ini; ?>
+    </h6>
 
-<div class="kalender-wrap">
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Sen</th><th>Sel</th><th>Rab</th><th>Kam</th><th>Jum</th><th>Sab</th><th>Min</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <?php
-                    $hari_ke = 1; 
+    <div class="calendar-header">
+        <div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div>
+    </div>
+
+    <div class="calendar-grid">
+        <?php
+        // 1. Kotak kosong awal bulan
+        for ($i = 1; $i < $hari_pertama_minggu; $i++) {
+            echo '<div class="day-cell empty"></div>';
+        }
+
+        // 2. Loop tanggal
+        for ($hari_ke = 1; $hari_ke <= $jumlah_hari_di_bulan; $hari_ke++) {
+            $hari_minggu_ini = date('N', mktime(0, 0, 0, $bulan_pilihan, $hari_ke, $tahun_pilihan));
+            $tanggal_loop = "$tahun_pilihan-" . str_pad($bulan_pilihan, 2, '0', STR_PAD_LEFT) . "-" . str_pad($hari_ke, 2, '0', STR_PAD_LEFT);
+            $tanggal_hari_ini = date('Y-m-d');
+            
+            // CSS Classes setup
+            $classes = ['day-cell'];
+            $status_text = ''; // Text kecil di bawah angka
+
+            // Highlight Hari Ini
+            if ($is_current_month && $hari_ke == $hari_ini) {
+                $classes[] = 'today';
+            }
+
+            if (isset($data_absensi_bulan_ini[$hari_ke])) {
+                // === KASUS A: Ada Data Absensi ===
+                $status = $data_absensi_bulan_ini[$hari_ke];
+                $classes[] = 'status-' . strtolower($status);
+                $status_text = $status;
+            } else {
+                // === KASUS B: Tidak Ada Data ===
+                
+                // Cek apakah Hari Kerja Perusahaan?
+                if (in_array($hari_minggu_ini, $hari_kerja_perusahaan)) {
                     
-                    // 1. Kotak kosong awal bulan
-                    for ($i = 1; $i < $hari_pertama_minggu; $i++) {
-                        echo '<td class="bukan-bulan-ini"></td>';
+                    // Cek apakah dalam periode PKL?
+                    $is_within_period = ($tanggal_loop >= $pkl_start && $tanggal_loop <= $pkl_end);
+                    
+                    if ($tanggal_loop < $tanggal_hari_ini && $is_within_period) {
+                        // Tidak hadir (Alpha Otomatis)
+                        $classes[] = 'status-missing';
+                        $status_text = '!';
+                    } elseif (!$is_within_period) {
+                        // Diluar periode PKL
+                        $status_text = '-';
                     }
+                } else {
+                    // Hari Libur Rutin
+                    $classes[] = 'status-libur';
+                }
+            }
 
-                    // 2. Loop tanggal
-                    while ($hari_ke <= $jumlah_hari_di_bulan) {
-                        
-                        $hari_minggu_ini = date('N', mktime(0, 0, 0, $bulan_pilihan, $hari_ke, $tahun_pilihan));
-                        
-                        // Format tanggal lengkap Y-m-d
-                        $tanggal_loop = "$tahun_pilihan-" . str_pad($bulan_pilihan, 2, '0', STR_PAD_LEFT) . "-" . str_pad($hari_ke, 2, '0', STR_PAD_LEFT);
-                        $tanggal_hari_ini = date('Y-m-d');
-
-                        // Cek apakah ini hari ini?
-                        $class_hari_ini = ($is_current_month && $hari_ke == $hari_ini) ? 'hari-ini' : '';
-                        
-                        $content = "<span class='nomor-tanggal'>$hari_ke</span>";
-                        
-                        if (isset($data_absensi_bulan_ini[$hari_ke])) {
-                            // KASUS A: Ada Data
-                            $status = $data_absensi_bulan_ini[$hari_ke];
-                            $badge_class = 'status-' . strtolower($status);
-                            if($status == 'Libur') $badge_class = 'status-libur';
-                            
-                            $content .= "<span class='status-badge $badge_class'>$status</span>";
-                        
-                        } else {
-                            // KASUS B: Kosong
-                            
-                            // Cek Hari Kerja
-                            if (in_array($hari_minggu_ini, $hari_kerja_perusahaan)) {
-                                // Hari Kerja
-                                
-                                // [LOGIKA BARU] Cek apakah DALAM periode PKL?
-                                $is_within_period = ($tanggal_loop >= $pkl_start && $tanggal_loop <= $pkl_end);
-                                
-                                if ($tanggal_loop < $tanggal_hari_ini && $is_within_period) {
-                                    // Tanggal lewat + Dalam Periode + Hari Kerja = Tidak Hadir
-                                    $content .= "<span class='status-badge status-alpha-auto'>Tidak Hadir</span>";
-                                } elseif (!$is_within_period) {
-                                    // Di luar periode
-                                    $content .= "<span class='text-muted small d-block mt-1'>-</span>";
-                                }
-                            } else {
-                                // Hari Libur
-                                $content .= "<span class='status-badge status-libur'>Libur</span>";
-                            }
-                        }
-
-                        echo "<td class='$class_hari_ini'>$content</td>";
-
-                        if ($hari_minggu_ini == 7 && $hari_ke != $jumlah_hari_di_bulan) {
-                            echo '</tr><tr>';
-                        }
-                        $hari_ke++;
-                    }
-
-                    // 3. Kotak kosong akhir bulan
-                    $hari_terakhir_minggu = date('N', mktime(0, 0, 0, $bulan_pilihan, $jumlah_hari_di_bulan, $tahun_pilihan));
-                    if ($hari_terakhir_minggu != 7) {
-                        for ($i = $hari_terakhir_minggu; $i < 7; $i++) {
-                            echo '<td class="bukan-bulan-ini"></td>';
-                        }
-                    }
-                    ?>
-                </tr>
-            </tbody>
-        </table>
+            // Render HTML Cell
+            echo '<div class="' . implode(' ', $classes) . '">';
+            echo '<span>' . $hari_ke . '</span>';
+            if ($status_text) {
+                // Potong teks jika terlalu panjang (misal "Sakit" jadi "Skt" optional, tapi CSS handle overflow)
+                echo '<span class="cell-status-text">' . substr($status_text, 0, 5) . '</span>';
+            }
+            echo '</div>';
+        }
+        ?>
     </div>
 </div>
 
-<div class="mt-3 small text-muted">
-    <i class="fas fa-info-circle me-1"></i> 
-    <span class="badge status-hadir me-1">Hadir</span>
-    <span class="badge status-izin me-1">Izin</span>
-    <span class="badge status-sakit me-1">Sakit</span>
-    <span class="badge status-alpha me-1">Alpha</span>
-    <span class="badge status-alpha-auto text-danger me-1">Tidak Hadir (Otomatis)</span>
-    <span class="badge status-libur border">Libur Rutin</span>
+<div class="mt-4 pt-3 border-top">
+    <small class="text-muted d-block mb-2 fw-bold">Keterangan:</small>
+    <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-success bg-opacity-25 text-success border border-success">Hadir</span>
+        <span class="badge bg-primary bg-opacity-25 text-primary border border-primary">Izin</span>
+        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Sakit</span>
+        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Alpha</span>
+    </div>
 </div>

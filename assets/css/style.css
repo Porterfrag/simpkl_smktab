@@ -136,3 +136,31 @@ h1, h2, h3, h4, h5, h6 {
 /* 9. Kalender */
 .kalender-wrap th { background-color: #0d6efd; color: white; text-align: center; }
 .kalender-wrap td { height: 100px; vertical-align: top; padding: 8px; border: 1px solid #eee; }
+
+/* assets/css/style.css */
+
+body {
+    /* Warna dasar abu-abu kebiruan sangat muda */
+    background-color: #f5f7fa; 
+    /* Pola titik-titik (Dot Grid) */
+    background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    /* Pastikan tinggi minimal satu layar penuh */
+    min-height: 100vh; 
+    margin: 0;
+}
+
+/* Kamu juga bisa memindahkan style card global ke sini jika mau */
+.stat-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 12px;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
