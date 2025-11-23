@@ -1,4 +1,5 @@
 <?php
+// --- BAGIAN LOGIKA PHP (TIDAK DIUBAH) ---
 
 if (!isset($_SESSION['id_ref']) || $_SESSION['role'] != 'pembimbing') {
     die("Akses tidak sah!");
@@ -66,97 +67,162 @@ try {
 }
 ?>
 
-<div class="d-flex justify-content-between align-items-start mb-3">
-    <div>
-        <a href="index.php?page=pembimbing/validasi_daftar_siswa" class="btn btn-sm btn-secondary mb-2">&larr; Kembali ke Daftar</a>
-        <h2 class="mb-0">Rekap Absensi: <?php echo htmlspecialchars($nama_siswa); ?></h2>
-        <p class="text-muted mt-1">Total hari terdata: <strong><?php echo $total_hari; ?></strong> hari.</p>
-    </div>
-    <div>
-        <a href="pages/pembimbing/export_absensi_detail.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-success">
-            <i class="fas fa-file-excel me-2"></i> Export Excel
+<!-- --- TAMPILAN MOBILE FOCUSED --- -->
+<div class="container-fluid px-0">
+
+    <!-- Header Navigasi -->
+    <div class="d-flex align-items-center mb-3 bg-white p-3 shadow-sm rounded">
+        <a href="index.php?page=pembimbing/validasi_daftar_siswa" class="btn btn-light btn-sm me-3 text-secondary rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="flex-grow-1">
+            <small class="text-muted d-block">Rekap Absensi</small>
+            <h5 class="mb-0 fw-bold text-dark text-truncate"><?php echo htmlspecialchars($nama_siswa); ?></h5>
+        </div>
+        <!-- Tombol Export di Header -->
+        <a href="pages/pembimbing/export_absensi_detail.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-success btn-sm ms-2" title="Export Excel">
+            <i class="fas fa-file-excel"></i>
         </a>
     </div>
-</div>
 
-<hr>
-<h3 class="mt-4 mb-3">Ringkasan Kehadiran</h3>
-<div class="table-responsive mb-5">
-    <table class="table table-bordered">
-        <thead class="table-light">
-            <tr>
-                <th>Status</th>
-                <th>Jumlah Hari</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="text-start">Hadir</td>
-                <td class="text-end"><?php echo $rekap['Hadir']; ?> hari</td>
-            </tr>
-            <tr>
-                <td class="text-start" style="color: blue;">Izin</td>
-                <td class="text-end" style="color: blue;"><?php echo $rekap['Izin']; ?> hari</td>
-            </tr>
-            <tr>
-                <td class="text-start" style="color: red;">Sakit</td>
-                <td class="text-end" style="color: red;"><?php echo $rekap['Sakit']; ?> hari</td>
-            </tr>
-            <tr>
-                <td class="text-start" style="color: darkred;">Alpha (Tanpa Keterangan)</td>
-                <td class="text-end" style="color: darkred;"><?php echo $rekap['Alpha']; ?> hari</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+    <!-- --- BAGIAN DASHBOARD STATISTIK (GRID 2x2) --- -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <h6 class="fw-bold text-secondary mb-0">Ringkasan Kehadiran</h6>
+            <span class="badge bg-light text-dark border">Total: <?php echo $total_hari; ?> Hari</span>
+        </div>
+        
+        <div class="row g-2">
+            <!-- Card Hadir -->
+            <div class="col-6">
+                <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="text-success mb-2"><i class="fas fa-user-check fa-lg"></i></div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-success"><?php echo $rekap['Hadir']; ?></h3>
+                            <small class="text-success fw-bold opacity-75">Hadir</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<h3 class="mt-4 mb-3">Rincian Tanggal (Izin / Sakit / Alpha)</h3>
-<div class="table-responsive">
-    <table class="table table-striped table-hover table-bordered <?php echo (!empty($detail_list) ? 'datatable' : ''); ?>">
-        <thead class="table-light">
-            <tr>
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>Status</th> <th>Bukti Foto / Keterangan</th> <th>Dicatat Oleh</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php $no = 1; ?>
-            <?php foreach ($detail_list as $item): ?>
-                <tr>
-                    <td class="text-start" width="5%"><?php echo $no++; ?></td>
-                    <td class="text-start" width="15%"><?php echo date('d F Y', strtotime($item['tanggal'])); ?></td>
+            <!-- Card Izin -->
+            <div class="col-6">
+                <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #cce5ff 0%, #b8daff 100%);">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="text-primary mb-2"><i class="fas fa-envelope-open-text fa-lg"></i></div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-primary"><?php echo $rekap['Izin']; ?></h3>
+                            <small class="text-primary fw-bold opacity-75">Izin</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Sakit -->
+            <div class="col-6">
+                <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="text-warning mb-2"><i class="fas fa-procedures fa-lg"></i></div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-warning text-dark"><?php echo $rekap['Sakit']; ?></h3>
+                            <small class="text-warning text-dark fw-bold opacity-75">Sakit</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Alpha -->
+            <div class="col-6">
+                <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="text-danger mb-2"><i class="fas fa-times-circle fa-lg"></i></div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-danger"><?php echo $rekap['Alpha']; ?></h3>
+                            <small class="text-danger fw-bold opacity-75">Alpha</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- BAGIAN RINCIAN DETAIL (CARD LIST) --- -->
+    <h6 class="fw-bold text-secondary border-bottom pb-2 mb-3">
+        <i class="fas fa-history me-2"></i>Riwayat Ketidakhadiran
+    </h6>
+
+    <div id="attendanceList">
+        <?php foreach ($detail_list as $item): ?>
+            <?php 
+                $status = htmlspecialchars($item['status']);
+                
+                // Styling berdasarkan status
+                $borderClass = 'border-dark';
+                $badgeClass = 'bg-dark';
+                $icon = 'fa-question';
+                
+                if ($status == 'Izin') {
+                    $borderClass = 'border-primary';
+                    $badgeClass = 'bg-primary';
+                    $icon = 'fa-envelope';
+                } elseif ($status == 'Sakit') {
+                    $borderClass = 'border-warning';
+                    $badgeClass = 'bg-warning text-dark';
+                    $icon = 'fa-medkit';
+                } elseif ($status == 'Alpha') {
+                    $borderClass = 'border-danger';
+                    $badgeClass = 'bg-danger';
+                    $icon = 'fa-times';
+                }
+            ?>
+
+            <div class="card mb-3 shadow-sm border-0 border-start border-4 <?php echo $borderClass; ?>">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="fw-bold text-dark d-block">
+                                <?php echo date('d F Y', strtotime($item['tanggal'])); ?>
+                            </span>
+                            <small class="text-muted" style="font-size: 0.8rem;">
+                                <i class="fas fa-user-edit me-1"></i> <?php echo htmlspecialchars($item['dicatat_oleh']); ?>
+                            </small>
+                        </div>
+                        <span class="badge rounded-pill <?php echo $badgeClass; ?>">
+                            <i class="fas <?php echo $icon; ?> me-1"></i> <?php echo $status; ?>
+                        </span>
+                    </div>
                     
-                    <?php
-                        $status = htmlspecialchars($item['status']);
-                        $class_badge = 'bg-dark';
-                        if ($status == 'Izin') $class_badge = 'bg-primary';
-                        if ($status == 'Sakit') $class_badge = 'bg-warning text-dark';
-                        if ($status == 'Alpha') $class_badge = 'bg-danger';
-                    ?>
-                    <td class="text-start" width="10%"><span class="badge <?php echo $class_badge; ?>"><?php echo $status; ?></span></td>
-                    
-                    <td class="text-start" width="40%">
+                    <div class="bg-light rounded p-2 mb-2">
+                        <p class="mb-0 text-secondary small fst-italic">
+                            "<?php echo htmlspecialchars($item['keterangan'] ?: '-'); ?>"
+                        </p>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
                         <?php if ($item['bukti_foto']): ?>
-                            <a href="assets/uploads/<?php echo htmlspecialchars($item['bukti_foto']); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Lihat Foto</a>
-                        <?php else: ?>
-                            <?php echo htmlspecialchars($item['keterangan']); ?>
+                            <a href="assets/uploads/<?php echo htmlspecialchars($item['bukti_foto']); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-image me-1"></i> Foto
+                            </a>
                         <?php endif; ?>
-                    </td>
+                        <a href="index.php?page=pembimbing/absensi_edit&id=<?php echo $item['id_absensi']; ?>" class="btn btn-sm btn-info text-white">
+                            <i class="fas fa-pencil-alt me-1"></i> Koreksi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
 
-                    <td class="text-start" width="15%"><?php echo htmlspecialchars($item['dicatat_oleh']); ?></td>
-                    <td class="text-start" width="15%">
-                        <a href="index.php?page=pembimbing/absensi_edit&id=<?php echo $item['id_absensi']; ?>" class="btn btn-sm btn-info">Koreksi</a>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            
-            <?php if (empty($detail_list)): ?>
-                <tr>
-                    <td colspan="6" class="text-center">Tidak ada data izin, sakit, atau alpha yang tercatat.</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+        <?php if (empty($detail_list)): ?>
+            <div class="text-center py-5 text-muted bg-light rounded">
+                <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i>
+                <p class="mb-0 fw-bold">Siswa Rajin!</p>
+                <small>Tidak ada riwayat izin, sakit, atau alpha.</small>
+            </div>
+        <?php endif; ?>
+    </div>
+    
+    <!-- Footer Helper (Optional spacer) -->
+    <div class="mb-5"></div>
+
 </div>

@@ -362,50 +362,62 @@ $(document).ready(function() {
 </script>
 
 <script>
-// Variabel untuk menyimpan event install
+// -------------------------------------------------------
+// LOGIKA INSTALL PWA (AUTO HIDE)
+// -------------------------------------------------------
 let deferredPrompt;
 const installContainer = document.getElementById('installContainer');
 const btnInstall = document.getElementById('btnInstall');
 
-// 1. Browser mendeteksi website ini BISA diinstall (Event: beforeinstallprompt)
+// 1. Cek apakah aplikasi sedang berjalan di mode STANDALONE (Sudah diinstall)
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+// Jika sudah diinstall/dibuka lewat aplikasi, jangan tampilkan tombol
+if (isStandalone && installContainer) {
+    installContainer.style.display = 'none';
+}
+
+// 2. Event: Browser mendeteksi website BISA diinstall
 window.addEventListener('beforeinstallprompt', (e) => {
-    // Mencegah browser menampilkan pop-up default yang kadang tidak muncul
+    // Mencegah browser menampilkan pop-up default mini
     e.preventDefault();
-    
     // Simpan event untuk dipicu nanti
     deferredPrompt = e;
     
-    // TAMPILKAN tombol install buatan kita
-    if (installContainer) {
+    // TAMPILKAN tombol install HANYA JIKA belum diinstall
+    if (installContainer && !isStandalone) {
         installContainer.style.display = 'flex';
     }
-    console.log("PWA siap diinstall!");
 });
 
-// 2. Saat user klik tombol Install
+// 3. Event: Saat user klik tombol Install
 if (btnInstall) {
     btnInstall.addEventListener('click', async () => {
         if (deferredPrompt) {
             // Picu prompt asli browser
             deferredPrompt.prompt();
             
-            // Tunggu respon user (Install / Batal)
+            // Tunggu respon user
             const { outcome } = await deferredPrompt.userChoice;
             console.log(`User response: ${outcome}`);
             
-            // Hapus event karena sudah dipakai
+            // Hapus event
             deferredPrompt = null;
             
-            // Sembunyikan tombol lagi
+            // Sembunyikan tombol (agar tidak bisa diklik lagi)
             installContainer.style.display = 'none';
         }
     });
 }
 
-// 3. Jika sudah berhasil diinstall (App Installed)
+// 4. Event: DETEKSI SUKSES INSTALL
+// Ini akan berjalan otomatis setelah instalasi selesai
 window.addEventListener('appinstalled', () => {
-    // Sembunyikan tombol
-    if (installContainer) installContainer.style.display = 'none';
-    console.log('PWA Installed');
+    // Sembunyikan container tombol secara permanen
+    if (installContainer) {
+        installContainer.style.display = 'none';
+    }
+    console.log('PWA Berhasil Diinstall');
+    deferredPrompt = null;
 });
 </script>

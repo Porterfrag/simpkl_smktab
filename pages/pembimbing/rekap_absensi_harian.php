@@ -1,4 +1,5 @@
 <?php
+// --- BAGIAN LOGIKA PHP (SAMA DENGAN ASLINYA, DITAMBAH HITUNG STATISTIK) ---
 
 if (!isset($_SESSION['id_ref']) || $_SESSION['role'] != 'pembimbing') {
     die("Akses tidak sah!");
@@ -43,6 +44,12 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'tandai_alpha' && isset($_GET['id_s
 
 
 $rekap_absensi = [];
+// Variabel Statistik Harian
+$stat_hadir = 0;
+$stat_izin_sakit = 0;
+$stat_alpha = 0;
+$stat_belum = 0;
+
 try {
     $sql_siswa = "SELECT 
                     siswa.id_siswa, siswa.nama_lengkap, siswa.nis,
@@ -69,12 +76,19 @@ try {
     foreach ($siswa_list as $siswa) {
         $id_siswa = $siswa['id_siswa'];
         if (isset($absensi_hari_ini[$id_siswa])) {
-            $siswa['status_absen'] = $absensi_hari_ini[$id_siswa]['status'];
+            $status = $absensi_hari_ini[$id_siswa]['status'];
+            $siswa['status_absen'] = $status;
             $siswa['jam_absen'] = $absensi_hari_ini[$id_siswa]['jam_absen'];
             $siswa['keterangan'] = $absensi_hari_ini[$id_siswa]['keterangan'];
             $siswa['bukti_foto'] = $absensi_hari_ini[$id_siswa]['bukti_foto'];
             $siswa['latitude'] = $absensi_hari_ini[$id_siswa]['latitude'];
             $siswa['longitude'] = $absensi_hari_ini[$id_siswa]['longitude'];
+
+            // Hitung Statistik
+            if ($status == 'Hadir') $stat_hadir++;
+            elseif ($status == 'Izin' || $status == 'Sakit') $stat_izin_sakit++;
+            elseif ($status == 'Alpha') $stat_alpha++;
+
         } else {
             $siswa['status_absen'] = 'Belum Absen';
             $siswa['jam_absen'] = '-';
@@ -82,6 +96,8 @@ try {
             $siswa['bukti_foto'] = null;
             $siswa['latitude'] = null;
             $siswa['longitude'] = null;
+            
+            $stat_belum++;
         }
         $rekap_absensi[] = $siswa;
     }
@@ -91,138 +107,210 @@ try {
 }
 ?>
 
-<h2 class="mb-4">Rekap Absensi Harian</h2>
-<p class="mb-3">Halaman ini menampilkan status kehadiran siswa bimbingan Anda untuk hari ini, <strong><?php echo date('d F Y', strtotime($hari_ini)); ?></strong>.</p>
+<!-- --- TAMPILAN MOBILE FOCUSED --- -->
+<div class="container-fluid px-0">
+    
+    <!-- Header -->
+    <div class="d-flex align-items-center mb-3 bg-white p-3 shadow-sm rounded">
+        <div class="flex-grow-1">
+            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-calendar-day me-2"></i>Absensi Harian</h5>
+            <small class="text-muted"><?php echo date('l, d F Y', strtotime($hari_ini)); ?></small>
+        </div>
+        <div>
+            <button class="btn btn-light btn-sm rounded-circle" onclick="window.location.reload();" title="Refresh Data">
+                <i class="fas fa-sync-alt text-secondary"></i>
+            </button>
+        </div>
+    </div>
 
-<?php if(!empty($pesan_sukses)): ?>
-    <div class="alert alert-success" role="alert"><?php echo $pesan_sukses; ?></div>
-<?php endif; ?>
-<?php if(!empty($pesan_error)): ?>
-    <div class="alert alert-danger" role="alert"><?php echo $pesan_error; ?></div>
-<?php endif; ?>
+    <!-- Dashboard Statistik Mini -->
+    <div class="row g-2 mb-4">
+        <div class="col-3">
+            <div class="p-2 text-center bg-success bg-opacity-10 border border-success rounded">
+                <h5 class="mb-0 fw-bold text-success"><?php echo $stat_hadir; ?></h5>
+                <small class="text-muted" style="font-size: 0.7rem;">Hadir</small>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="p-2 text-center bg-primary bg-opacity-10 border border-primary rounded">
+                <h5 class="mb-0 fw-bold text-primary"><?php echo $stat_izin_sakit; ?></h5>
+                <small class="text-muted" style="font-size: 0.7rem;">Izin/Skt</small>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="p-2 text-center bg-danger bg-opacity-10 border border-danger rounded">
+                <h5 class="mb-0 fw-bold text-danger"><?php echo $stat_alpha; ?></h5>
+                <small class="text-muted" style="font-size: 0.7rem;">Alpha</small>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="p-2 text-center bg-secondary bg-opacity-10 border border-secondary rounded">
+                <h5 class="mb-0 fw-bold text-secondary"><?php echo $stat_belum; ?></h5>
+                <small class="text-muted" style="font-size: 0.7rem;">Belum</small>
+            </div>
+        </div>
+    </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover table-bordered <?php echo (!empty($rekap_absensi) ? 'datatable' : ''); ?>">
-        <thead class="table-light">
-            <tr>
-                <th>No</th>
-                <th>Nama Siswa (NIS)</th>
-                <th>Status Hari Ini</th>
-                <th>Jam Absen</th>
-                <th>Keterangan</th>
-                <th>Bukti Foto</th> 
-                <th>Lokasi GPS</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php $no = 1; ?>
-            <?php foreach ($rekap_absensi as $rekap): ?>
-                <tr>
-                    <td class="text-start"><?php echo $no++; ?></td>
-                    <td class="text-start" style="min-width: 150px;">
-                        <?php echo htmlspecialchars($rekap['nama_lengkap']); ?>
-                        <br><small>(NIS: <?php echo htmlspecialchars($rekap['nis']); ?>)</small>
-                    </td>
-                    
-                    <td class="text-start">
-                        <?php
-                            $status = $rekap['status_absen'];
-                            $class_badge = 'text-black';
-                            if ($status == 'Izin') $class_badge = 'bg-primary text-white';
-                            if ($status == 'Sakit') $class_badge = 'bg-warning text-dark';
-                            if ($status == 'Alpha') $class_badge = 'bg-danger text-white';
-                            if ($status == 'Belum Absen') $class_badge = 'bg-secondary text-white';
-                            if ($status == 'Hadir') $class_badge = 'bg-success text-white';
-                        ?>
-                        <span class="badge <?php echo $class_badge; ?>"><?php echo htmlspecialchars($status); ?></span>
-                    </td>
+    <?php if(!empty($pesan_sukses)): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-check-circle me-2"></i><?php echo $pesan_sukses; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if(!empty($pesan_error)): ?>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <?php echo $pesan_error; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
 
-                    <td class="text-start"><?php echo htmlspecialchars($rekap['jam_absen']); ?></td>
-                    <td class="text-start"><?php echo htmlspecialchars($rekap['keterangan']); ?></td>
-                    
-                    <td class="text-start" style="min-width: 80px;">
-                        <?php if ($rekap['bukti_foto']): ?>
-                            <button type="button" class="btn btn-sm btn-outline-primary" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#fotoModal" 
-                                    data-foto="assets/uploads/<?php echo htmlspecialchars($rekap['bukti_foto']); ?>"
-                                    data-nama="<?php echo htmlspecialchars($rekap['nama_lengkap']); ?>">
-                                <i class="fas fa-image"></i> Lihat
-                            </button>
-                        <?php else: ?>
-                            -
-                        <?php endif; ?>
-                    </td>
-                    
-                    <td class="text-start" style="min-width: 80px;">
-                        <?php if (!empty($rekap['latitude']) && !empty($rekap['longitude'])): ?>
-                            <button type="button" class="btn btn-sm btn-outline-info" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#mapModal" 
-                                    data-lat="<?php echo $rekap['latitude']; ?>" 
-                                    data-lon="<?php echo $rekap['longitude']; ?>"
-                                    data-nama="<?php echo htmlspecialchars($rekap['nama_lengkap']); ?>">
-                                <i class="fas fa-map-marker-alt"></i> Map
-                            </button>
-                        <?php else: ?>
-                            -
-                        <?php endif; ?>
-                    </td>
+    <!-- Search Filter Sederhana -->
+    <div class="input-group shadow-sm mb-3">
+        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+        <input type="text" id="mobileSearch" class="form-control border-start-0" placeholder="Cari nama siswa...">
+    </div>
 
-                    <td class="text-start" style="min-width: 100px;">
-                        <?php if ($rekap['status_absen'] == 'Belum Absen'): ?>
+    <!-- List Absensi Card -->
+    <div id="absensiList">
+        <?php foreach ($rekap_absensi as $rekap): ?>
+            <?php
+                $status = $rekap['status_absen'];
+                
+                // Logic Warna & Icon
+                $borderClass = 'border-secondary';
+                $badgeClass = 'bg-secondary';
+                $bgCard = 'bg-white';
+                $iconStatus = 'fa-minus';
+
+                if ($status == 'Hadir') {
+                    $borderClass = 'border-success';
+                    $badgeClass = 'bg-success';
+                    $bgCard = 'bg-success bg-opacity-10'; // Sedikit tint hijau
+                    $iconStatus = 'fa-check';
+                } elseif ($status == 'Izin') {
+                    $borderClass = 'border-primary';
+                    $badgeClass = 'bg-primary';
+                    $iconStatus = 'fa-envelope';
+                } elseif ($status == 'Sakit') {
+                    $borderClass = 'border-warning';
+                    $badgeClass = 'bg-warning text-dark';
+                    $iconStatus = 'fa-medkit';
+                } elseif ($status == 'Alpha') {
+                    $borderClass = 'border-danger';
+                    $badgeClass = 'bg-danger';
+                    $iconStatus = 'fa-times';
+                } elseif ($status == 'Belum Absen') {
+                    $borderClass = 'border-light'; // Netral
+                    $bgCard = 'bg-light'; 
+                }
+            ?>
+
+            <div class="card mb-3 shadow-sm border-0 border-start border-4 <?php echo $borderClass; ?> student-item">
+                <div class="card-body p-3">
+                    <!-- Baris Atas: Nama & Badge Status -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0 student-name"><?php echo htmlspecialchars($rekap['nama_lengkap']); ?></h6>
+                            <small class="text-muted">NIS: <?php echo htmlspecialchars($rekap['nis']); ?></small>
+                        </div>
+                        <span class="badge rounded-pill <?php echo $badgeClass; ?>">
+                            <i class="fas <?php echo $iconStatus; ?> me-1"></i> <?php echo $status; ?>
+                        </span>
+                    </div>
+
+                    <!-- Baris Tengah: Informasi Absen -->
+                    <div class="row g-2 mb-3 small text-secondary">
+                        <div class="col-6">
+                            <i class="far fa-clock me-1"></i> <?php echo htmlspecialchars($rekap['jam_absen']); ?>
+                        </div>
+                        <div class="col-6 text-truncate">
+                            <i class="far fa-comment-dots me-1"></i> <?php echo htmlspecialchars($rekap['keterangan']); ?>
+                        </div>
+                    </div>
+
+                    <!-- Baris Bawah: Tombol Aksi -->
+                    <div class="d-flex gap-2">
+                        <?php if ($status == 'Belum Absen'): ?>
+                            <!-- Tombol Tandai Alpha -->
                             <a href="index.php?page=pembimbing/rekap_absensi_harian&aksi=tandai_alpha&id_siswa=<?php echo $rekap['id_siswa']; ?>" 
-                               class="btn btn-sm btn-danger btn-alpha">
-                               Tandai Alpha
+                               class="btn btn-outline-danger btn-sm w-100" 
+                               onclick="return confirm('Yakin ingin menandai siswa ini sebagai Alpha?');">
+                                <i class="fas fa-user-times me-1"></i> Tandai Alpha
                             </a>
                         <?php else: ?>
-                            <span class="text-muted small">(Sudah Terekam)</span>
+                            <!-- Tombol Lihat Foto & Lokasi -->
+                            <?php if ($rekap['bukti_foto']): ?>
+                                <button class="btn btn-primary btn-sm flex-grow-1" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#fotoModal" 
+                                        data-foto="assets/uploads/<?php echo htmlspecialchars($rekap['bukti_foto']); ?>"
+                                        data-nama="<?php echo htmlspecialchars($rekap['nama_lengkap']); ?>">
+                                    <i class="fas fa-camera"></i> Foto
+                                </button>
+                            <?php else: ?>
+                                <button class="btn btn-secondary btn-sm flex-grow-1" disabled><i class="fas fa-camera"></i> No Foto</button>
+                            <?php endif; ?>
+
+                            <?php if (!empty($rekap['latitude'])): ?>
+                                <button class="btn btn-info btn-sm flex-grow-1 text-white"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#mapModal" 
+                                        data-lat="<?php echo $rekap['latitude']; ?>" 
+                                        data-lon="<?php echo $rekap['longitude']; ?>"
+                                        data-nama="<?php echo htmlspecialchars($rekap['nama_lengkap']); ?>">
+                                    <i class="fas fa-map-marker-alt"></i> Lokasi
+                                </button>
+                            <?php else: ?>
+                                <button class="btn btn-secondary btn-sm flex-grow-1" disabled><i class="fas fa-map-marker-alt"></i> No Lokasi</button>
+                            <?php endif; ?>
                         <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            
-            <?php if (empty($rekap_absensi)): ?>
-                <tr>
-                    <td colspan="8" class="text-center">Anda tidak memiliki siswa bimbingan.</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                    </div>
+
+                </div>
+            </div>
+        <?php endforeach; ?>
+
+        <?php if (empty($rekap_absensi)): ?>
+            <div class="text-center py-5">
+                <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Belum ada siswa yang terdaftar.</p>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 
+<!-- MODAL MAP -->
 <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Lokasi: <span id="namaSiswaMap"></span></h5>
+            <div class="modal-header py-2">
+                <h6 class="modal-title text-truncate" id="namaSiswaMap">Lokasi Siswa</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0" style="height: 60vh;">
-                <iframe id="mapFrame" width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src=""></iframe>
+                <iframe id="mapFrame" width="100%" height="100%" frameborder="0" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
             </div>
-            <div class="modal-footer">
-                <small id="koordinatText" class="me-auto text-muted"></small>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-footer py-1 bg-light">
+                <small id="koordinatText" class="text-muted me-auto font-monospace"></small>
+                <a id="gmapsLink" href="#" target="_blank" class="btn btn-primary btn-sm">
+                    <i class="fas fa-external-link-alt me-1"></i> Buka GMap
+                </a>
             </div>
         </div>
     </div>
 </div>
 
+<!-- MODAL FOTO -->
 <div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"> <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Foto Bukti: <span id="namaSiswaFoto"></span></h5>
+    <div class="modal-dialog modal-dialog-centered"> 
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="namaSiswaFoto">Foto Bukti</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center bg-light">
-                <img id="imgPreview" src="" class="img-fluid rounded shadow-sm" alt="Bukti Foto">
-            </div>
-            <div class="modal-footer">
-                <a id="downloadLink" href="" download class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Download</a>
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-body text-center p-2">
+                <img id="imgPreview" src="" class="img-fluid rounded" alt="Bukti Foto" style="max-height: 75vh; width: 100%; object-fit: contain; background: #f8f9fa;">
             </div>
         </div>
     </div>
@@ -230,44 +318,52 @@ try {
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Search Filter Script
+document.getElementById('mobileSearch').addEventListener('keyup', function() {
+    const filter = this.value.toLowerCase();
+    const items = document.querySelectorAll('.student-item');
     
-    // --- LOGIKA MODAL PETA ---
-    var mapModal = document.getElementById('mapModal');
-    mapModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget; 
-        var lat = button.getAttribute('data-lat');
-        var lon = button.getAttribute('data-lon');
-        var nama = button.getAttribute('data-nama');
-        var mapUrl = "https://maps.google.com/maps?q=" + lat + "," + lon + "&z=17&ie=UTF8&iwloc=&output=embed";
-
-        document.getElementById('mapFrame').src = mapUrl;
-        document.getElementById('namaSiswaMap').textContent = nama;
-        document.getElementById('koordinatText').textContent = "Koordinat: " + lat + ", " + lon;
+    items.forEach(item => {
+        const name = item.querySelector('.student-name').textContent.toLowerCase();
+        if (name.includes(filter)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
     });
-    mapModal.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('mapFrame').src = ""; // Reset iframe agar stop loading
-    });
-
-    // --- LOGIKA MODAL FOTO ---
-    var fotoModal = document.getElementById('fotoModal');
-    fotoModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var fotoUrl = button.getAttribute('data-foto'); // Ambil URL dari tombol
-        var nama = button.getAttribute('data-nama');
-
-        var img = document.getElementById('imgPreview');
-        var downloadBtn = document.getElementById('downloadLink');
-        
-        // Set source gambar dan link download
-        img.src = fotoUrl;
-        downloadBtn.href = fotoUrl;
-        
-        document.getElementById('namaSiswaFoto').textContent = nama;
-    });
-    fotoModal.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('imgPreview').src = ""; // Reset gambar
-    });
-
 });
+
+// Logic Modal Map
+var mapModal = document.getElementById('mapModal');
+mapModal.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget; 
+    var lat = button.getAttribute('data-lat');
+    var lon = button.getAttribute('data-lon');
+    var nama = button.getAttribute('data-nama');
+    
+    // Menggunakan Google Maps Embed API
+    var mapUrl = "https://maps.google.com/maps?q=" + lat + "," + lon + "&z=17&ie=UTF8&iwloc=&output=embed";
+    // Link untuk membuka aplikasi Google Maps langsung
+    var gmapsUrl = "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lon;
+
+    document.getElementById('mapFrame').src = mapUrl;
+    document.getElementById('namaSiswaMap').textContent = "Lokasi: " + nama;
+    document.getElementById('koordinatText').textContent = lat + ", " + lon;
+    document.getElementById('gmapsLink').href = gmapsUrl;
+});
+
+// Logic Modal Foto
+var fotoModal = document.getElementById('fotoModal');
+fotoModal.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var fotoUrl = button.getAttribute('data-foto');
+    var nama = button.getAttribute('data-nama');
+
+    document.getElementById('imgPreview').src = fotoUrl;
+    document.getElementById('namaSiswaFoto').textContent = nama;
+});
+
+// Reset Source saat modal tutup
+mapModal.addEventListener('hidden.bs.modal', function () { document.getElementById('mapFrame').src = ""; });
+fotoModal.addEventListener('hidden.bs.modal', function () { document.getElementById('imgPreview').src = ""; });
 </script>
