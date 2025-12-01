@@ -1,25 +1,16 @@
 <?php
-// (Pastikan file ini hanya di-include oleh index.php)
-// session_start(); // (Sudah dimulai di index.php)
 
-// Ambil id_siswa dari session
 if (!isset($_SESSION['id_ref']) || $_SESSION['role'] != 'siswa') {
     die("Akses tidak sah!");
 }
 $id_siswa = $_SESSION['id_ref'];
 
-// (Asumsi $pdo dan $SETTINGS sudah ada dari index.php)
 
-// ==========================================================
-// --- LOGIKA PENGAMBILAN BULAN & TAHUN ---
-// ==========================================================
 $bulan_pilihan = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
 $tahun_pilihan = isset($_GET['tahun']) ? $_GET['tahun'] : date('Y');
 $nama_bulan_ini = date('F Y', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
-// ==========================================================
 
-// --- 1. AMBIL NAMA SISWA & HARI KERJA PERUSAHAAN ---
-$hari_kerja_perusahaan = []; // Default kosong
+$hari_kerja_perusahaan = []; 
 try {
     $sql_info = "SELECT s.nama_lengkap, p.hari_kerja 
                  FROM siswa s
@@ -31,11 +22,9 @@ try {
     
     $nama_siswa = $info['nama_lengkap'];
     
-    // Ubah string "1,2,3,4,5" menjadi array [1, 2, 3, 4, 5]
     if (!empty($info['hari_kerja'])) {
         $hari_kerja_perusahaan = explode(',', $info['hari_kerja']);
     } else {
-        // Default Senin-Jumat jika belum diset
         $hari_kerja_perusahaan = [1, 2, 3, 4, 5];
     }
 
@@ -43,9 +32,7 @@ try {
     die("Error: " . $e->getMessage());
 }
 
-// --- 2. AMBIL DATA ABSENSI SESUAI BULAN PILIHAN ---
 $data_absensi_bulan_ini = [];
-// Variabel untuk Dashboard Ringkasan
 $summary = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alpha' => 0];
 
 try {
@@ -64,7 +51,6 @@ try {
     while ($row = $stmt_absen->fetch(PDO::FETCH_ASSOC)) {
         $data_absensi_bulan_ini[$row['hari']] = $row['status'];
         
-        // Hitung ringkasan untuk dashboard
         if(isset($summary[$row['status']])) {
             $summary[$row['status']]++;
         }
@@ -75,18 +61,15 @@ try {
 }
 
 
-// --- LOGIKA KALENDER ---
 $jumlah_hari_di_bulan = date('t', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
 $hari_pertama_minggu = date('N', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
 $hari_ini = date('d');
 $bulan_ini_sekarang = date('m');
 $tahun_ini_sekarang = date('Y');
 
-// [LOGIKA BARU] AMBIL BATAS TANGGAL DARI SETTINGS
 $pkl_start = isset($SETTINGS['pkl_start_date']) ? $SETTINGS['pkl_start_date'] : '2020-01-01';
 $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '2030-12-31';
 
-// Cek apakah kalender yang dibuka adalah bulan ini
 $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == $tahun_ini_sekarang);
 ?>
 
@@ -261,59 +244,46 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
 
     <div class="calendar-grid">
         <?php
-        // 1. Kotak kosong awal bulan
         for ($i = 1; $i < $hari_pertama_minggu; $i++) {
             echo '<div class="day-cell empty"></div>';
         }
 
-        // 2. Loop tanggal
         for ($hari_ke = 1; $hari_ke <= $jumlah_hari_di_bulan; $hari_ke++) {
             $hari_minggu_ini = date('N', mktime(0, 0, 0, $bulan_pilihan, $hari_ke, $tahun_pilihan));
             $tanggal_loop = "$tahun_pilihan-" . str_pad($bulan_pilihan, 2, '0', STR_PAD_LEFT) . "-" . str_pad($hari_ke, 2, '0', STR_PAD_LEFT);
             $tanggal_hari_ini = date('Y-m-d');
             
-            // CSS Classes setup
             $classes = ['day-cell'];
-            $status_text = ''; // Text kecil di bawah angka
+            $status_text = ''; 
 
-            // Highlight Hari Ini
             if ($is_current_month && $hari_ke == $hari_ini) {
                 $classes[] = 'today';
             }
 
             if (isset($data_absensi_bulan_ini[$hari_ke])) {
-                // === KASUS A: Ada Data Absensi ===
                 $status = $data_absensi_bulan_ini[$hari_ke];
                 $classes[] = 'status-' . strtolower($status);
                 $status_text = $status;
             } else {
-                // === KASUS B: Tidak Ada Data ===
                 
-                // Cek apakah Hari Kerja Perusahaan?
                 if (in_array($hari_minggu_ini, $hari_kerja_perusahaan)) {
                     
-                    // Cek apakah dalam periode PKL?
                     $is_within_period = ($tanggal_loop >= $pkl_start && $tanggal_loop <= $pkl_end);
                     
                     if ($tanggal_loop < $tanggal_hari_ini && $is_within_period) {
-                        // Tidak hadir (Alpha Otomatis)
                         $classes[] = 'status-missing';
                         $status_text = '!';
                     } elseif (!$is_within_period) {
-                        // Diluar periode PKL
                         $status_text = '-';
                     }
                 } else {
-                    // Hari Libur Rutin
                     $classes[] = 'status-libur';
                 }
             }
 
-            // Render HTML Cell
             echo '<div class="' . implode(' ', $classes) . '">';
             echo '<span>' . $hari_ke . '</span>';
             if ($status_text) {
-                // Potong teks jika terlalu panjang (misal "Sakit" jadi "Skt" optional, tapi CSS handle overflow)
                 echo '<span class="cell-status-text">' . substr($status_text, 0, 5) . '</span>';
             }
             echo '</div>';

@@ -54,13 +54,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ':id' => $id_absensi
         ]);
 
-        $pesan_sukses = "Koreksi absensi berhasil disimpan.";
-        
-        echo "<script>
-                alert('Koreksi berhasil disimpan!');
-                window.location.href='index.php?page=pembimbing/rekap_absensi_siswa&id_siswa=$id_siswa_terkait';
-              </script>";
-        exit;
+        // --- SWEETALERT2 SUCCESS RESPONSE ---
+        echo "
+        <!DOCTYPE html>
+        <html lang='id'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Proses Koreksi</title>
+            <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+            <style>body { font-family: sans-serif; background-color: #f8f9fa; }</style>
+        </head>
+        <body>
+            <script>
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: 'Koreksi absensi berhasil disimpan.',
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#0d6efd'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = 'index.php?page=pembimbing/rekap_absensi_siswa&id_siswa=$id_siswa_terkait';
+                    }
+                });
+            </script>
+        </body>
+        </html>";
+        exit; // Stop execution so the form below doesn't load again
 
     } catch (PDOException $e) {
         $pesan_error = "Gagal update: " . $e->getMessage();
@@ -74,6 +95,8 @@ try {
     $data = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { die("Error: " . $e->getMessage()); }
 ?>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <a href="index.php?page=pembimbing/rekap_absensi_siswa&id_siswa=<?php echo $id_siswa_terkait; ?>" class="btn btn-sm btn-secondary mb-3">&larr; Kembali</a>
 

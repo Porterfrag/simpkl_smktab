@@ -128,10 +128,18 @@ try {
                                 </td>
 
                                 <td class="text-center">
-                                    <a href="index.php?page=admin/plotting_edit&id_siswa=<?php echo $siswa['id_siswa']; ?>" class="btn btn-sm btn-outline-secondary" title="Edit Manual">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                </td>
+                        <div class="btn-group" role="group">
+                            <a href="index.php?page=admin/plotting_edit&id_siswa=<?php echo $siswa['id_siswa']; ?>" class="btn btn-sm btn-outline-secondary" title="Edit Plotting">
+                                <i class="fas fa-edit"></i>
+                            </a>
+
+                            <?php if (!empty($siswa['nama_perusahaan'])): ?>
+                                <a href="cetak_surat_pengantar.php?id_siswa=<?php echo $siswa['id_siswa']; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="Cetak Surat Pengantar">
+                                    <i class="fas fa-print"></i>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

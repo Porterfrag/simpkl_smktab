@@ -4,12 +4,10 @@
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     die("Akses dilarang!");
 }
-$id_admin = $_SESSION['user_id']; 
+
 $hari_ini = date('Y-m-d');
 $pesan_sukses = '';
 $pesan_error = '';
-
-// (Asumsi $pdo sudah ada dari index.php)
 
 // --- PROSES: TANDAI ALPHA (Aksi dari Admin) ---
 if (isset($_GET['aksi']) && $_GET['aksi'] == 'tandai_alpha' && isset($_GET['id_siswa'])) {
@@ -28,14 +26,12 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'tandai_alpha' && isset($_GET['id_s
         
     } catch (PDOException $e) {
         if ($e->errorInfo[1] == 1062) { 
-            $pesan_error = "Gagal: Siswa sudah melakukan absensi (Hadir/Izin/Sakit).";
+            $pesan_error = "Gagal: Siswa sudah melakukan absensi.";
         } else {
             $pesan_error = "Gagal menandai Alpha: " . $e->getMessage();
         }
     }
 }
-// --- AKHIR PROSES ---
-
 
 // --- AMBIL DATA UNTUK DITAMPILKAN ---
 $rekap_absensi = [];
@@ -51,8 +47,8 @@ try {
     $stmt_siswa->execute();
     $siswa_list = $stmt_siswa->fetchAll(PDO::FETCH_ASSOC);
     
-    // 2. Ambil data absensi HARI INI
-    $sql_absensi = "SELECT id_siswa, status, jam_absen, keterangan 
+    // 2. Ambil data absensi HARI INI (Lengkap dengan Foto & GPS)
+    $sql_absensi = "SELECT id_siswa, status, jam_absen, keterangan, bukti_foto, latitude, longitude
                     FROM absensi 
                     WHERE tanggal = :tanggal";
     $stmt_absensi = $pdo->prepare($sql_absensi);
@@ -63,17 +59,24 @@ try {
         $absensi_hari_ini[$row['id_siswa']] = $row;
     }
     
-    // 3. Gabungkan data siswa dan data absensi
+    // 3. Gabungkan data
     foreach ($siswa_list as $siswa) {
         $id_siswa = $siswa['id_siswa'];
         if (isset($absensi_hari_ini[$id_siswa])) {
-            $siswa['status_absen'] = $absensi_hari_ini[$id_siswa]['status'];
-            $siswa['jam_absen'] = $absensi_hari_ini[$id_siswa]['jam_absen'];
-            $siswa['keterangan'] = $absensi_hari_ini[$id_siswa]['keterangan'];
+            $data = $absensi_hari_ini[$id_siswa];
+            $siswa['status_absen'] = $data['status'];
+            $siswa['jam_absen'] = $data['jam_absen'];
+            $siswa['keterangan'] = $data['keterangan'];
+            $siswa['bukti_foto'] = $data['bukti_foto'];
+            $siswa['latitude'] = $data['latitude'];
+            $siswa['longitude'] = $data['longitude'];
         } else {
             $siswa['status_absen'] = 'Belum Absen';
             $siswa['jam_absen'] = '-';
             $siswa['keterangan'] = '-';
+            $siswa['bukti_foto'] = null;
+            $siswa['latitude'] = null;
+            $siswa['longitude'] = null;
         }
         $rekap_absensi[] = $siswa;
     }
@@ -84,16 +87,18 @@ try {
 ?>
 
 <h2 class="mb-4">Rekap Absensi Harian (Semua Siswa)</h2>
-<p class="mb-3">Halaman ini menampilkan status kehadiran semua siswa untuk hari ini, <strong><?php echo date('d F Y', strtotime($hari_ini)); ?></strong>.</p>
-<a href="pages/admin/export_absensi_excel.php" target="_blank" class="btn btn-success mb-3">
-    <i class="fas fa-file-excel me-2"></i> Export Rekap Total (Semester) ke Excel
-</a>
+<p class="mb-3">Monitoring kehadiran seluruh siswa untuk hari ini, <strong><?php echo date('d F Y', strtotime($hari_ini)); ?></strong>.</p>
+
 <?php if(!empty($pesan_sukses)): ?>
     <div class="alert alert-success" role="alert"><?php echo $pesan_sukses; ?></div>
 <?php endif; ?>
 <?php if(!empty($pesan_error)): ?>
     <div class="alert alert-danger" role="alert"><?php echo $pesan_error; ?></div>
 <?php endif; ?>
+
+<a href="pages/admin/export_absensi_excel.php" target="_blank" class="btn btn-success mb-3">
+    <i class="fas fa-file-excel me-2"></i> Export Rekap Total (Semester) ke Excel
+</a>
 
 <div class="table-responsive">
     <table class="table table-striped table-hover table-bordered <?php echo (!empty($rekap_absensi) ? 'datatable' : ''); ?>">
@@ -102,10 +107,11 @@ try {
                 <th>No</th>
                 <th>Nama Siswa (NIS)</th>
                 <th>Pembimbing</th>
-                <th>Status Hari Ini</th>
-                <th>Jam Absen</th>
-                <th>Keterangan</th>
-                <th style="min-width: 100px;">Aksi</th>
+                <th>Status</th>
+                <th>Jam</th>
+                <th>Bukti</th> 
+                <th>Lokasi</th>
+                <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -113,8 +119,8 @@ try {
             <?php foreach ($rekap_absensi as $rekap): ?>
                 <tr>
                     <td class="text-start"><?php echo $no++; ?></td>
-                    <td class="text-start">
-                        <strong><?php echo htmlspecialchars($rekap['nama_lengkap']); ?></strong>
+                    <td class="text-start" style="min-width: 150px;">
+                        <?php echo htmlspecialchars($rekap['nama_lengkap']); ?>
                         <br><small class="text-muted">(NIS: <?php echo htmlspecialchars($rekap['nis']); ?>)</small>
                     </td>
                     <td class="text-start">
@@ -124,28 +130,55 @@ try {
                     <td class="text-start">
                         <?php
                             $status = $rekap['status_absen'];
-                            $class_badge = 'text-black';
-                            if ($status == 'Izin') $class_badge = 'bg-primary text-white';
+                            $class_badge = 'bg-secondary';
+                            if ($status == 'Izin') $class_badge = 'bg-primary';
                             if ($status == 'Sakit') $class_badge = 'bg-warning text-dark';
-                            if ($status == 'Alpha') $class_badge = 'bg-danger text-white';
-                            if ($status == 'Belum Absen') $class_badge = 'bg-secondary text-white';
-                            if ($status == 'Hadir') $class_badge = 'bg-success text-white';
+                            if ($status == 'Alpha') $class_badge = 'bg-danger';
+                            if ($status == 'Hadir') $class_badge = 'bg-success';
                         ?>
                         <span class="badge <?php echo $class_badge; ?>"><?php echo htmlspecialchars($status); ?></span>
+                        
+                        <?php if(!empty($rekap['keterangan'])): ?>
+                            <br><small class="text-muted" style="font-size: 0.75em;"><?php echo substr($rekap['keterangan'], 0, 20); ?></small>
+                        <?php endif; ?>
                     </td>
 
                     <td class="text-start"><?php echo htmlspecialchars($rekap['jam_absen']); ?></td>
-                    <td class="text-start"><?php echo htmlspecialchars($rekap['keterangan']); ?></td>
+                    
+                    <td class="text-start" style="min-width: 70px;">
+                        <?php if ($rekap['bukti_foto']): ?>
+                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#fotoModal" 
+                                    data-foto="assets/uploads/<?php echo htmlspecialchars($rekap['bukti_foto']); ?>"
+                                    data-nama="<?php echo htmlspecialchars($rekap['nama_lengkap']); ?>">
+                                <i class="fas fa-image"></i>
+                            </button>
+                        <?php else: ?> - <?php endif; ?>
+                    </td>
+
+                    <td class="text-start" style="min-width: 70px;">
+                        <?php if (!empty($rekap['latitude']) && !empty($rekap['longitude'])): ?>
+                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#mapModal" 
+                                    data-lat="<?php echo $rekap['latitude']; ?>" 
+                                    data-lon="<?php echo $rekap['longitude']; ?>"
+                                    data-nama="<?php echo htmlspecialchars($rekap['nama_lengkap']); ?>">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        <?php else: ?> - <?php endif; ?>
+                    </td>
                     
                     <td class="text-start">
                         <?php if ($rekap['status_absen'] == 'Belum Absen'): ?>
                             <a href="index.php?page=admin/rekap_absensi_harian&aksi=tandai_alpha&id_siswa=<?php echo $rekap['id_siswa']; ?>" 
                                class="btn btn-sm btn-danger" 
                                onclick="return confirm('Yakin menandai siswa ini sebagai ALPHA?')">
-                               Tandai Alpha
+                               Alpha
                             </a>
                         <?php else: ?>
-                            <span class="text-muted small">(Sudah Terekam)</span>
+                             <span class="text-muted small"><i class="fas fa-check-circle"></i></span>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -153,9 +186,85 @@ try {
             
             <?php if (empty($rekap_absensi)): ?>
                 <tr>
-                    <td colspan="7" class="text-center">Data siswa masih kosong.</td>
+                    <td colspan="8" class="text-center">Data siswa masih kosong.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
     </table>
 </div>
+
+<div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lokasi: <span id="namaSiswaMap"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 60vh;">
+                <iframe id="mapFrame" width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src=""></iframe>
+            </div>
+            <div class="modal-footer">
+                <small id="koordinatText" class="me-auto text-muted"></small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Foto Bukti: <span id="namaSiswaFoto"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center bg-light">
+                <img id="imgPreview" src="" class="img-fluid rounded shadow-sm" alt="Bukti Foto" style="max-height: 70vh;">
+            </div>
+            <div class="modal-footer">
+                <a id="downloadLink" href="" download class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Download</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // MODAL PETA
+    var mapModal = document.getElementById('mapModal');
+    mapModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget; 
+        var lat = button.getAttribute('data-lat');
+        var lon = button.getAttribute('data-lon');
+        var nama = button.getAttribute('data-nama');
+        var mapUrl = "https://maps.google.com/maps?q=" + lat + "," + lon + "&z=17&ie=UTF8&iwloc=&output=embed";
+
+        document.getElementById('mapFrame').src = mapUrl;
+        document.getElementById('namaSiswaMap').textContent = nama;
+        document.getElementById('koordinatText').textContent = "Koordinat: " + lat + ", " + lon;
+    });
+    mapModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('mapFrame').src = ""; 
+    });
+
+    // MODAL FOTO
+    var fotoModal = document.getElementById('fotoModal');
+    fotoModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var fotoUrl = button.getAttribute('data-foto'); 
+        var nama = button.getAttribute('data-nama');
+
+        var img = document.getElementById('imgPreview');
+        var downloadBtn = document.getElementById('downloadLink');
+        
+        img.src = fotoUrl;
+        downloadBtn.href = fotoUrl;
+        document.getElementById('namaSiswaFoto').textContent = nama;
+    });
+    fotoModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('imgPreview').src = ""; 
+    });
+});
+</script>

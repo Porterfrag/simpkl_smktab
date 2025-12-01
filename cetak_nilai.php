@@ -3,184 +3,178 @@ session_start();
 require 'config/koneksi.php';
 require 'core/fpdf/fpdf.php'; 
 
-if (!isset($_SESSION['user_id'])) {
-    die("Anda harus login untuk mengakses halaman ini.");
-}
-if (!isset($_GET['id_siswa'])) {
-    die("Error: ID Siswa tidak ditemukan.");
-}
+if (!isset($_SESSION['user_id'])) { die("Akses dilarang."); }
+if (!isset($_GET['id_siswa'])) { die("ID Siswa tidak ditemukan."); }
 
 $id_siswa = $_GET['id_siswa'];
-$role = $_SESSION['role'];
-$id_ref = $_SESSION['id_ref']; 
 
 try {
-    $sql_siswa = "SELECT 
-                    siswa.nama_lengkap, siswa.nis, siswa.kelas, 
-                    perusahaan.nama_perusahaan,
-                    pembimbing.nama_guru
-                  FROM siswa 
-                  LEFT JOIN perusahaan ON siswa.id_perusahaan = perusahaan.id_perusahaan
-                  LEFT JOIN pembimbing ON siswa.id_pembimbing = pembimbing.id_pembimbing
-                  WHERE siswa.id_siswa = :id_siswa";
+    $sql = "SELECT s.nama_lengkap, s.nis, s.kelas, s.jurusan,
+                p.nama_perusahaan, p.kontak_person as pembimbing_dudi, 
+                g.nama_guru, g.nip as nip_guru, n.* FROM siswa s
+            LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan
+            LEFT JOIN pembimbing g ON s.id_pembimbing = g.id_pembimbing
+            LEFT JOIN penilaian n ON s.id_siswa = n.id_siswa
+            WHERE s.id_siswa = :id";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':id' => $id_siswa]);
+    $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($role == 'pembimbing') {
-        $sql_siswa .= " AND siswa.id_pembimbing = :id_pembimbing";
+    if (!$data || empty($data['aspek_disiplin'])) {
+        die("<script>alert('Data nilai belum lengkap!'); window.close();</script>");
     }
-    
-    $stmt_siswa = $pdo->prepare($sql_siswa);
-    $params_siswa = [':id_siswa' => $id_siswa];
-    if ($role == 'pembimbing') {
-        $params_siswa[':id_pembimbing'] = $id_ref;
+
+    // --- LOGIKA NOMOR SERTIFIKAT ---
+    $no_urut = 0;
+    if (!empty($data['no_sertifikat'])) {
+        $no_urut = $data['no_sertifikat'];
+    } else {
+        $stmt_max = $pdo->query("SELECT MAX(no_sertifikat) as max_no FROM penilaian");
+        $row_max = $stmt_max->fetch(PDO::FETCH_ASSOC);
+        $last_no = $row_max['max_no'];
+        $no_urut = ($last_no == 0 || $last_no == null) ? 316 : $last_no + 1;
+
+        $stmt_update = $pdo->prepare("UPDATE penilaian SET no_sertifikat = :no WHERE id_penilaian = :id_p");
+        $stmt_update->execute([':no' => $no_urut, ':id_p' => $data['id_penilaian']]);
     }
+    $nomor_sertifikat_full = "NOMOR: " . $no_urut . "/SERT/SMKNST/" . date('Y');
+    // --------------------------------
+
+    $total = $data['aspek_disiplin'] + $data['aspek_kompetensi'] + $data['aspek_kerjasama'] + $data['aspek_inisiatif'];
+    $rata_rata = $total / 4;
     
-    $stmt_siswa->execute($params_siswa);
-    $siswa = $stmt_siswa->fetch(PDO::FETCH_ASSOC);
+    $predikat = "Cukup";
+    if ($rata_rata >= 90) $predikat = "Sangat Baik (Excellent)";
+    elseif ($rata_rata >= 80) $predikat = "Baik (Good)";
+    elseif ($rata_rata >= 70) $predikat = "Cukup (Fair)";
 
-    if (!$siswa) {
-        die("Data siswa tidak ditemukan atau Anda tidak punya hak akses.");
-    }
-    
-    $sql_nilai = "SELECT * FROM penilaian WHERE id_siswa = :id_siswa";
-    $stmt_nilai = $pdo->prepare($sql_nilai);
-    $stmt_nilai->execute(['id_siswa' => $id_siswa]);
-    $nilai = $stmt_nilai->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { die("Error: " . $e->getMessage()); }
 
-    if (!$nilai) {
-        $nilai = [
-            'aspek_disiplin' => 0,
-            'aspek_kompetensi' => 0,
-            'aspek_kerjasama' => 0,
-            'aspek_inisiatif' => 0,
-            'catatan_penilaian' => 'Siswa belum dinilai.'
-        ];
-    }
-    
-    $total_nilai = $nilai['aspek_disiplin'] + $nilai['aspek_kompetensi'] + $nilai['aspek_kerjasama'] + $nilai['aspek_inisiatif'];
-    $rata_rata = $total_nilai / 4;
-
-
-} catch (PDOException $e) {
-    die("Error database: " . $e->getMessage());
-}
-
-
-
-class PDF_Nilai extends FPDF
-{
-    function Header()
-    {
-        $this->SetFont('Arial','B',14);
-        $this->Cell(0, 10, 'SERTIFIKAT NILAI PRAKTIK KERJA LAPANGAN', 0, 1, 'C');
-        $this->SetFont('Arial','B',12);
-        $this->Cell(0, 10, 'SMKN 1 CODING', 0, 1, 'C'); 
+class PDF_Sertifikat extends FPDF {
+    function Header() {
         $this->SetLineWidth(1);
-        $this->Line(10, 32, 200, 32); 
-        $this->SetLineWidth(0.2);
-        $this->Line(10, 33, 200, 33); 
-        $this->Ln(10); 
-    }
-
-    function Footer()
-    {
-        $this->SetY(-15);
-        $this->SetFont('Arial','I',8);
-        $this->Cell(0, 10, 'Halaman ' . $this->PageNo(), 0, 0, 'C');
-    }
-    
-    function TabelNilai($header, $data)
-    {
-        $w = array(10, 120, 50); 
+        $this->Rect(5, 5, 320, 205); 
+        $this->SetLineWidth(0.5);
+        $this->Rect(8, 8, 314, 199); 
         
-        $this->SetFont('Arial', 'B', 11);
-        $this->SetFillColor(230, 230, 230);
-        for($i = 0; $i < count($header); $i++) {
-            $this->Cell($w[$i], 10, $header[$i], 1, 0, 'C', true);
+        if(file_exists('assets/images/logo-smk.png')) {
+            $this->Image('assets/images/logo-smk.png', 155, 12, 20);
         }
-        $this->Ln();
-        
-        $this->SetFont('Arial', '', 11);
-        $this->SetFillColor(255);
-        $no = 1;
-        foreach($data as $aspek => $nilai_aspek)
-        {
-            $this->Cell($w[0], 10, $no++, 1, 0, 'C');
-            $this->Cell($w[1], 10, $aspek, 1, 0, 'L');
-            $this->Cell($w[2], 10, $nilai_aspek, 1, 1, 'C');
-        }
+        $this->Ln(25); 
     }
 }
 
-$pdf = new PDF_Nilai('P', 'mm', 'A4');
+$pdf = new PDF_Sertifikat('L', 'mm', array(215, 330)); 
+$pdf->SetMargins(15, 15, 15);
+$pdf->SetAutoPageBreak(false); 
 $pdf->AddPage();
 
-$pdf->SetFont('Arial', 'B', 12);
-$pdf->Cell(0, 10, 'DATA SISWA', 0, 1, 'L');
+// --- JUDUL ---
+$pdf->SetFont('Times', 'B', 20); 
+$pdf->Cell(0, 8, 'SERTIFIKAT PRAKTIK KERJA LAPANGAN', 0, 1, 'C');
 
 $pdf->SetFont('Arial', '', 11);
-$pdf->Cell(40, 7, 'Nama Siswa', 0, 0, 'L');
-$pdf->Cell(5, 7, ':', 0, 0, 'C');
-$pdf->Cell(0, 7, $siswa['nama_lengkap'], 0, 1, 'L');
+$pdf->Cell(0, 6, $nomor_sertifikat_full, 0, 1, 'C');
+$pdf->Ln(3);
 
-$pdf->Cell(40, 7, 'NIS', 0, 0, 'L');
-$pdf->Cell(5, 7, ':', 0, 0, 'C');
-$pdf->Cell(0, 7, $siswa['nis'], 0, 1, 'L');
+// --- IDENTITAS ---
+$pdf->SetFont('Arial', '', 11);
+$pdf->Cell(0, 6, 'Kepala SMK Negeri 1 Sungai Tabuk dengan ini menerangkan bahwa:', 0, 1, 'C');
 
-$pdf->Cell(40, 7, 'Kelas', 0, 0, 'L');
-$pdf->Cell(5, 7, ':', 0, 0, 'C');
-$pdf->Cell(0, 7, $siswa['kelas'], 0, 1, 'L');
+$pdf->Ln(2);
+$pdf->SetFont('Times', 'BI', 24); 
+$pdf->SetTextColor(0, 51, 102);
+$pdf->Cell(0, 10, strtoupper($data['nama_lengkap']), 0, 1, 'C');
 
-$pdf->Cell(40, 7, 'Tempat PKL', 0, 0, 'L');
-$pdf->Cell(5, 7, ':', 0, 0, 'C');
-$nama_perusahaan = isset($siswa['nama_perusahaan']) ? $siswa['nama_perusahaan'] : '-';
-$pdf->Cell(0, 7, $nama_perusahaan, 0, 1, 'L');
+$pdf->SetTextColor(0, 0, 0);
+$pdf->SetFont('Arial', '', 11);
+$pdf->Cell(0, 6, 'NIS: ' . $data['nis'] . '  |  Kelas: ' . $data['kelas'] . '  |  Jurusan: ' . $data['jurusan'], 0, 1, 'C');
 
-$pdf->Ln(10); 
+$pdf->Ln(4);
+$pdf->MultiCell(0, 5, "Telah melaksanakan dan menyelesaikan Praktik Kerja Lapangan (PKL) dengan hasil yang memuaskan di:", 0, 'C');
 
-$pdf->SetFont('Arial', 'B', 12);
-$pdf->Cell(0, 10, 'HASIL PENILAIAN PRAKTIK KERJA LAPANGAN', 0, 1, 'L');
+$pdf->SetFont('Arial', 'B', 14);
+$pdf->Cell(0, 8, strtoupper($data['nama_perusahaan']), 0, 1, 'C');
 
-$header_tabel = array('No', 'Aspek Penilaian', 'Nilai (0-100)');
-$data_tabel = array(
-    'Disiplin & Kehadiran' => $nilai['aspek_disiplin'],
-    'Kompetensi Teknis / Keterampilan' => $nilai['aspek_kompetensi'],
-    'Kerjasama (Teamwork)' => $nilai['aspek_kerjasama'],
-    'Inisiatif & Kreativitas' => $nilai['aspek_inisiatif']
-);
+$pdf->SetFont('Arial', '', 11);
+$pdf->Cell(0, 6, "Dengan rincian nilai sebagai berikut:", 0, 1, 'C');
+$pdf->Ln(3);
 
-$pdf->TabelNilai($header_tabel, $data_tabel); 
+// --- TABEL NILAI ---
+$w_label = 110;
+$w_nilai = 30;
+$start_x = (330 - ($w_label + $w_nilai)) / 2; 
+$h_row = 7; 
 
+$pdf->SetX($start_x);
+$pdf->SetFont('Arial', 'B', 10);
+$pdf->SetFillColor(240, 240, 240);
+$pdf->Cell($w_label, 8, 'ASPEK PENILAIAN', 1, 0, 'C', true);
+$pdf->Cell($w_nilai, 8, 'NILAI', 1, 1, 'C', true);
+
+$pdf->SetFont('Arial', '', 10);
+
+$aspek = [
+    '1. Disiplin & Kehadiran' => $data['aspek_disiplin'],
+    '2. Kompetensi Teknis / Keterampilan' => $data['aspek_kompetensi'],
+    '3. Kerjasama (Teamwork)' => $data['aspek_kerjasama'],
+    '4. Inisiatif & Kreativitas' => $data['aspek_inisiatif']
+];
+
+foreach($aspek as $label => $nilai) {
+    $pdf->SetX($start_x);
+    $pdf->Cell($w_label, $h_row, $label, 1, 0);
+    $pdf->Cell($w_nilai, $h_row, $nilai, 1, 1, 'C');
+}
+
+$pdf->SetFont('Arial', 'B', 10);
+$pdf->SetX($start_x);
+$pdf->Cell($w_label, $h_row, 'NILAI RATA-RATA', 1, 0, 'R');
+$pdf->Cell($w_nilai, $h_row, number_format($rata_rata, 2), 1, 1, 'C', true);
+
+$pdf->Ln(3);
+$pdf->SetFont('Arial', 'I', 11);
+$pdf->Cell(0, 6, "Predikat: " . $predikat, 0, 1, 'C');
+
+
+// --- TANDA TANGAN (POSISI BARU) ---
+$pdf->SetFont('Arial', '', 11);
+$y_base = 165; 
+$y_kanan = 165; 
+
+$x_kiri = 40;
+$x_kanan = 230; 
+
+// KIRI: KEPALA SEKOLAH
+$pdf->SetXY($x_kiri, $y_base);
+$pdf->Cell(70, 5, 'Mengetahui,', 0, 1, 'C');
+$pdf->SetXY($x_kiri, $y_base + 5);
+$pdf->Cell(70, 5, 'Kepala Sekolah', 0, 1, 'C');
+
+$pdf->SetXY($x_kiri, $y_base + 30);
 $pdf->SetFont('Arial', 'B', 11);
-$pdf->Cell(130, 10, 'NILAI RATA-RATA', 1, 0, 'C');
-$pdf->Cell(50, 10, number_format($rata_rata, 2), 1, 1, 'C'); 
+$pdf->Cell(70, 5, '( Nama Kepala Sekolah )', 0, 1, 'C'); // Ganti dengan nama asli jika mau statis
+$pdf->SetFont('Arial', '', 10);
+$pdf->SetXY($x_kiri, $y_base + 35);
+$pdf->Cell(70, 5, 'NIP. ...................................', 0, 1, 'C');
 
-$pdf->Ln(10); 
 
-$pdf->SetFont('Arial', 'B', 12);
-$pdf->Cell(0, 10, 'CATATAN PEMBIMBING', 0, 1, 'L');
-
+// KANAN: PEMBIMBING DU/DI (PIHAK PERUSAHAAN)
 $pdf->SetFont('Arial', '', 11);
-$pdf->SetFillColor(250, 250, 250);
-$catatan = isset($nilai['catatan_penilaian']) ? $nilai['catatan_penilaian'] : '-';
-$pdf->MultiCell(190, 7, $catatan, 1, 'L', true);
+$pdf->SetXY($x_kanan, $y_kanan); 
+$pdf->Cell(80, 5, 'Banjarmasin, ' . date('d F Y'), 0, 1, 'C');
+$pdf->SetXY($x_kanan, $y_kanan + 5);
+$pdf->Cell(80, 5, 'Pembimbing DU/DI,', 0, 1, 'C');
 
-$pdf->Ln(15); 
-
-$pdf->SetFont('Arial', '', 11);
-$pdf->Cell(130); 
-$pdf->Cell(60, 7, 'Banjarmasin, ' . date('d F Y'), 0, 1, 'C'); 
-$pdf->Cell(130); 
-$pdf->Cell(60, 7, 'Guru Pembimbing,', 0, 1, 'C');
-$pdf->Ln(20); 
-
-$pdf->Cell(130); 
-$nama_pembimbing = isset($siswa['nama_guru']) ? $siswa['nama_guru'] : '(......................................)';
+$pdf->SetXY($x_kanan, $y_kanan + 30);
 $pdf->SetFont('Arial', 'B', 11);
-$pdf->Cell(60, 7, $nama_pembimbing, 0, 1, 'C');
-$pdf->SetFont('Arial', '', 11);
-$pdf->Cell(130); 
-$pdf->Cell(60, 7, 'NIP: ..............................', 0, 1, 'C');
+// Menggunakan data kontak_person dari tabel perusahaan sebagai nama pembimbing
+$nama_pembimbing_dudi = !empty($data['pembimbing_dudi']) ? $data['pembimbing_dudi'] : '( ................................... )';
+$pdf->Cell(80, 5, $nama_pembimbing_dudi, 0, 1, 'C');
+$pdf->SetFont('Arial', '', 10);
+$pdf->SetXY($x_kanan, $y_kanan + 35);
+// Pembimbing DUDI biasanya tidak punya NIP, bisa dikosongkan atau diganti Jabatan
+$pdf->Cell(80, 5, 'Jabatan: ..............................', 0, 1, 'C');
 
-
-$pdf->Output('I', 'Nilai_' . $siswa['nis'] . '.pdf');
+$pdf->Output('I', 'Sertifikat_' . $data['nis'] . '.pdf');
 ?>

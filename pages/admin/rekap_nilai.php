@@ -1,10 +1,15 @@
 <?php
+// (Pastikan file ini hanya di-include oleh index.php)
+// Cek jika bukan admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     die("Akses dilarang!");
 }
 
+// (Asumsi $pdo sudah ada dari index.php)
 try {
+    // Query ini mengambil SEMUA siswa, dan MENGGABUNGKAN data nilai jika ada
     $sql = "SELECT 
+                siswa.id_siswa,
                 siswa.nama_lengkap, 
                 siswa.nis, 
                 siswa.kelas,
@@ -30,10 +35,12 @@ try {
 ?>
 
 <h2 class="mb-4">Rekap Nilai Akhir Siswa PKL</h2>
-<p>Halaman ini menampilkan rekapitulasi nilai akhir semua siswa.</p>
+<p class="mb-3">Halaman ini menampilkan rekapitulasi nilai akhir semua siswa.</p>
+
 <a href="pages/admin/export_nilai_excel.php" target="_blank" class="btn btn-success mb-3">
-    <i class="fas fa-file-excel me-2"></i> Export ke Excel
+    <i class="fas fa-file-excel me-2"></i> Export Data ke Excel
 </a>
+
 <div class="table-responsive">
     <table class="table table-striped table-hover table-bordered datatable">
         <thead class="table-light">
@@ -44,17 +51,19 @@ try {
                 <th>Nilai Rata-Rata</th>
                 <th>Status</th>
                 <th>Dinilai Oleh</th>
+                <th style="min-width: 100px;">Aksi</th> 
             </tr>
         </thead>
         <tbody>
             <?php $no = 1; ?>
             <?php foreach ($siswa_list as $siswa): ?>
                 <tr>
-                    <td><?php echo $no++; ?></td>
-                    <td><?php echo htmlspecialchars($siswa['nama_lengkap']); ?></td>
-                    <td><?php echo htmlspecialchars($siswa['nis']); ?> / <?php echo htmlspecialchars($siswa['kelas']); ?></td>
+                    <td class="text-start"><?php echo $no++; ?></td>
+                    <td class="text-start"><?php echo htmlspecialchars($siswa['nama_lengkap']); ?></td>
+                    <td class="text-start"><?php echo htmlspecialchars($siswa['nis']); ?> / <?php echo htmlspecialchars($siswa['kelas']); ?></td>
                     
                     <?php
+                    // Cek apakah siswa sudah dinilai
                     $status_penilaian = isset($siswa['aspek_disiplin']);
                     
                     if ($status_penilaian) {
@@ -71,15 +80,25 @@ try {
                     }
                     ?>
                     
-                    <td style="text-align: center; font-weight: bold;"><?php echo $display_nilai; ?></td>
-                    <td><?php echo $display_status; ?></td>
-                    <td><?php echo $display_penilai; ?></td>
+                    <td class="text-center" style="font-weight: bold;"><?php echo $display_nilai; ?></td>
+                    <td class="text-start"><?php echo $display_status; ?></td>
+                    <td class="text-start"><?php echo $display_penilai; ?></td>
+                    
+                    <td class="text-center">
+                        <?php if ($status_penilaian): ?>
+                            <a href="cetak_nilai.php?id_siswa=<?php echo $siswa['id_siswa']; ?>" target="_blank" class="btn btn-sm btn-primary" title="Cetak Sertifikat">
+                                <i class="fas fa-print me-1"></i> Sertifikat
+                            </a>
+                        <?php else: ?>
+                            <span class="text-muted small">-</span>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
 
             <?php if (empty($siswa_list)): ?>
                 <tr>
-                    <td colspan="6" class="text-center">Data siswa masih kosong.</td>
+                    <td colspan="7" class="text-center">Data siswa masih kosong.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
