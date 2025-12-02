@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# 1. Hilangkan ekstensi .php (misal: domain.com/login -> login.php)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([a-z0-9_]+)/?$ $1.php [L]
+
+# 2. Routing Cantik (misal: domain.com/siswa/absensi -> index.php?page=siswa/absensi)
+# Kecualikan file/folder asli (css, js, images, dll)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([a-zA-Z0-9_/]+)$ index.php?page=$1 [L,QSA]

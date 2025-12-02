@@ -1,15 +1,48 @@
 <?php
-function compressAndUpload($source, $destination, $quality) {
-    $info = getimagesize($source);
+// File: core/functions.php
 
-    if ($info['mime'] == 'image/jpeg') {
-        $image = imagecreatefromjpeg($source);
-    } elseif ($info['mime'] == 'image/png') {
-        $image = imagecreatefrompng($source);
-    } else {
-        return false; 
+function compressAndUpload($source, $destination, $quality) {
+    
+    if (!function_exists('imagecreatefromjpeg')) {
+        return move_uploaded_file($source, $destination);
     }
 
+    $info = getimagesize($source);
+    $mime = $info['mime'];
+
+    // Create image resource based on type
+    switch ($mime) {
+        case 'image/jpeg':
+            $image = imagecreatefromjpeg($source);
+            break;
+        case 'image/png':
+            $image = imagecreatefrompng($source);
+            break;
+        default:
+            return move_uploaded_file($source, $destination);
+    }
+
+    // --- FIX: AUTO ROTATE BASED ON EXIF (JPEG ONLY) ---
+    if ($mime == 'image/jpeg' && function_exists('exif_read_data')) {
+        // Suppress errors in case EXIF data is missing or corrupt
+        $exif = @exif_read_data($source);
+        if ($exif && isset($exif['Orientation'])) {
+            switch ($exif['Orientation']) {
+                case 3:
+                    $image = imagerotate($image, 180, 0);
+                    break;
+                case 6:
+                    $image = imagerotate($image, -90, 0);
+                    break;
+                case 8:
+                    $image = imagerotate($image, 90, 0);
+                    break;
+            }
+        }
+    }
+    // --------------------------------------------------
+
+    // --- RESIZE ---
     $max_width = 800; 
     $width = imagesx($image);
     $height = imagesy($image);
@@ -20,7 +53,8 @@ function compressAndUpload($source, $destination, $quality) {
         
         $new_image = imagecreatetruecolor($new_width, $new_height);
         
-        if($info['mime'] == 'image/png') {
+        // Preserve PNG transparency
+        if($mime == 'image/png') {
             imagealphablending($new_image, false);
             imagesavealpha($new_image, true);
             $transparent = imagecolorallocatealpha($new_image, 255, 255, 255, 127);
@@ -31,24 +65,23 @@ function compressAndUpload($source, $destination, $quality) {
         $image = $new_image; 
     }
 
-    imagejpeg($image, $destination, $quality);
+    // --- SAVE ---
+    if ($mime == 'image/png') {
+         // Scale quality 0-100 to 0-9 for PNG
+         $pngQuality = (int)($quality / 10);
+         if($pngQuality > 9) $pngQuality = 9;
+         // Invert because 0 is no compression in PNG
+         $pngCompression = 9 - $pngQuality; 
+         
+         imagepng($image, $destination, 5); // Use mid-level compression for PNG
+    } else {
+         imagejpeg($image, $destination, $quality);
+    }
+    
+    // Cleanup
+    imagedestroy($image);
+    if (isset($new_image)) imagedestroy($new_image);
 
     return true;
-}
-
-// --- FUNGSI KIRIM NOTIFIKASI ---
-function kirim_notifikasi($pdo, $id_user, $judul, $pesan, $link = '#') {
-    try {
-        $sql = "INSERT INTO notifikasi (id_user, judul, pesan, link) VALUES (:id, :judul, :pesan, :link)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':id' => $id_user,
-            ':judul' => $judul,
-            ':pesan' => $pesan,
-            ':link' => $link
-        ]);
-    } catch (PDOException $e) {
-        // Silent error (jangan sampai aplikasi crash cuma gara-gara notif gagal)
-    }
 }
 ?>

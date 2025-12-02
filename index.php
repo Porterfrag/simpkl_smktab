@@ -80,7 +80,7 @@ if (in_array($page, $action_pages)) {
       <a class="navbar-brand d-flex align-items-center" href="index.php?page=dashboard">
     <img src="assets/images/logo-smk.png" alt="Logo" width="40" height="40" class="d-inline-block align-text-top me-2">
     
-    SIMPKL SMKTAB
+    SIPKL SMKTAB
 </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -334,7 +334,7 @@ if (in_array($page, $action_pages)) {
     <div class="d-flex align-items-start">
         <img src="assets/images/icon-192.png" width="50" class="rounded me-3">
         <div class="flex-grow-1">
-            <h6 class="fw-bold mb-1">Install Aplikasi SIMPKL</h6>
+            <h6 class="fw-bold mb-1">Install Aplikasi SIPKL</h6>
             <p class="small text-muted mb-0">
                 Untuk menginstall di iPhone: <br>
                 1. Tekan tombol <strong>Share</strong> <i class="fas fa-share-square text-primary"></i> di bawah browser Safari.<br>

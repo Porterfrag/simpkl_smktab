@@ -338,19 +338,20 @@ try {
 
 <!-- Modal Lihat Foto (Standard Bootstrap 5) -->
 <div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold" id="namaSiswaFoto">Detail Foto</h6>
+            <div class="modal-header">
+                <h5 class="modal-title">Foto Bukti: <span id="namaSiswaFoto"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center p-0 mt-2">
-                <img id="imgPreview" src="" class="img-fluid" alt="Bukti Foto" style="max-height: 80vh; width: 100%; object-fit: contain; background: #000;">
+            
+            <div class="modal-body text-center bg-light" style="max-height: 80vh; overflow-y: auto;">
+                <img id="imgPreview" src="" class="img-fluid rounded shadow-sm" alt="Bukti Foto" style="max-height: 70vh; width: auto;">
             </div>
-            <div class="modal-footer border-0 pt-2">
-                <a id="downloadLink" href="" download class="btn btn-primary btn-sm w-100">
-                    <i class="fas fa-download me-2"></i> Download Foto
-                </a>
+            
+            <div class="modal-footer">
+                <a id="downloadLink" href="" download class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Download</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>

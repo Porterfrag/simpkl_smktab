@@ -141,6 +141,9 @@ function getStatusBadge($status) {
                 <img id="imgPreview" src="" class="img-fluid" alt="Bukti Foto" style="max-height: 80vh;">
             </div>
             <div class="modal-footer border-0">
+                <a id="downloadLink" href="" download class="btn btn-primary btn-sm rounded-pill">
+                    <i class="fas fa-download me-1"></i> Download
+                </a>
                 <button type="button" class="btn btn-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
