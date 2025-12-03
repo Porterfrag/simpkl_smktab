@@ -1,5 +1,7 @@
 <?php
 // (Pastikan file ini hanya di-include oleh index.php)
+// session_start(); // (Sudah dimulai di index.php)
+
 $role = $_SESSION['role'];
 $id_ref = $_SESSION['id_ref']; 
 $username = $_SESSION['username'];
@@ -7,8 +9,12 @@ $username = $_SESSION['username'];
 $nama_display = $username;
 $info_cards = []; 
 $siswa_belum_absen = [];
-$dudi_bimbingan_list = []; // [BARU] Variabel untuk list DUDI
+$dudi_bimbingan_list = [];
 $pengumuman_list = [];
+
+// [PERBAIKAN] Inisialisasi variabel agar tidak error jika data kosong
+$tempat_pkl = '-';
+$nama_pembimbing = '-';
 
 try {
     $hari_ini = date('Y-m-d');
@@ -68,8 +74,7 @@ try {
         $siswa_belum_absen = $stmt_ba->fetchAll(PDO::FETCH_ASSOC);
         $c_belum_absen = count($siswa_belum_absen);
 
-        // [BARU] Hitung & Ambil Data DUDI Binaan
-        // Menggunakan DISTINCT agar jika ada 3 siswa di 1 PT, dihitung 1 PT.
+        // Hitung & Ambil Data DUDI Binaan
         $sql_dudi = "SELECT DISTINCT p.* FROM siswa s 
                      JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan 
                      WHERE s.id_pembimbing = ?";
@@ -82,7 +87,6 @@ try {
             ['title' => 'Siswa Bimbingan', 'value' => $c_siswa, 'icon' => 'fa-user-graduate', 'color' => 'primary', 'link' => 'index.php?page=pembimbing/validasi_daftar_siswa'],
             ['title' => 'Jurnal Pending', 'value' => $c_pending, 'icon' => 'fa-file-signature', 'color' => 'warning', 'link' => 'index.php?page=pembimbing/validasi_daftar_siswa'],
             ['title' => 'Belum Absen', 'value' => $c_belum_absen, 'icon' => 'fa-user-clock', 'color' => 'danger', 'is_modal' => true, 'target' => '#modalBelumAbsen'],
-            // [KARTU BARU] Mitra DUDI
             ['title' => 'Mitra DUDI', 'value' => $c_dudi_binaan, 'icon' => 'fa-building', 'color' => 'info', 'is_modal' => true, 'target' => '#modalDudiBimbingan']
         ];
 
@@ -98,10 +102,8 @@ try {
             $nama_display = $data['nama_lengkap'];
             $tempat_pkl = !empty($data['nama_perusahaan']) ? $data['nama_perusahaan'] : 'Belum Ditempatkan';
             $nama_pembimbing = !empty($data['nama_guru']) ? $data['nama_guru'] : 'Belum Diatur';
-        } else {
-            $nama_display = $username;
-            $tempat_pkl = '-'; $guru_pkl = '-';
         }
+        // Jika data kosong, variabel $nama_pembimbing tetap '-' (default di atas), jadi tidak error
     }
 
 } catch (PDOException $e) { }
@@ -126,7 +128,6 @@ try {
         border-radius: 12px;
         font-size: 1.5rem;
     }
-    /* Warna Background Icon Soft */
     .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1); color: #0d6efd; }
     .bg-soft-success { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
     .bg-soft-warning { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
@@ -256,7 +257,7 @@ try {
                                 <?php echo nl2br(substr($info['isi'], 0, 80)) . (strlen($info['isi']) > 80 ? '...' : ''); ?>
                             </p>
                             <?php if(strlen($info['isi']) > 80): ?>
-                                <a href="#" class="small text-decoration-none mt-1 d-block" data-bs-toggle="3333333333-" data-bs-target="#modalPengumuman<?php echo $info['id_pengumuman']; ?>">Baca selengkapnya</a>
+                                <a href="#" class="small text-decoration-none mt-1 d-block" data-bs-toggle="modal" data-bs-target="#modalPengumuman<?php echo $info['id_pengumuman']; ?>">Baca selengkapnya</a>
                             <?php endif; ?>
                         </div>
 
@@ -363,7 +364,6 @@ try {
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 1. CHART JS (Admin)
     <?php if ($role == 'admin'): ?>
     const ctx = document.getElementById('adminChart').getContext('2d');
     new Chart(ctx, {
@@ -384,9 +384,7 @@ try {
     });
     <?php endif; ?>
 
-    // 2. DATATABLES UNTUK MODAL
     $(document).ready(function() {
-        // Init Table Belum Absen
         $('#modalBelumAbsen').on('shown.bs.modal', function () {
             if (!$.fn.DataTable.isDataTable('#tableBelumAbsen')) {
                 $('#tableBelumAbsen').DataTable({
@@ -395,7 +393,6 @@ try {
             }
         });
 
-        // Init Table DUDI Bimbingan
         $('#modalDudiBimbingan').on('shown.bs.modal', function () {
             if (!$.fn.DataTable.isDataTable('#tableDudiBimbingan')) {
                 $('#tableDudiBimbingan').DataTable({
