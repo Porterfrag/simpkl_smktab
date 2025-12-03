@@ -1,4 +1,5 @@
 <?php
+// (Pastikan file ini hanya di-include oleh index.php)
 $role = $_SESSION['role'];
 $id_ref = $_SESSION['id_ref']; 
 $username = $_SESSION['username'];
@@ -6,14 +7,19 @@ $username = $_SESSION['username'];
 $nama_display = $username;
 $info_cards = []; 
 $siswa_belum_absen = [];
+$dudi_bimbingan_list = []; // [BARU] Variabel untuk list DUDI
 $pengumuman_list = [];
 
 try {
     $hari_ini = date('Y-m-d');
     
+    // 1. AMBIL PENGUMUMAN (Global)
     $stmt = $pdo->query("SELECT * FROM pengumuman ORDER BY tanggal_post DESC LIMIT 3");
     $pengumuman_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // ==========================================
+    // TAMPILAN ADMIN
+    // ==========================================
     if ($role == 'admin') {
         $nama_display = 'Administrator';
         
@@ -33,32 +39,56 @@ try {
             ['title' => 'Mitra DUDI', 'value' => $c_dudi, 'icon' => 'fa-building', 'color' => 'info', 'link' => 'index.php?page=admin/perusahaan_data'],
             ['title' => 'Pembimbing', 'value' => $c_guru, 'icon' => 'fa-chalkboard-user', 'color' => 'success', 'link' => 'index.php?page=admin/pembimbing_data'],
             ['title' => 'Jurnal Pending', 'value' => $c_pending, 'icon' => 'fa-clock', 'color' => 'warning', 'link' => 'index.php?page=admin/jurnal_data'],
-            ['title' => 'Belum Plotting', 'value' => $c_unplot, 'icon' => 'fa-user-slash', 'color' => 'secondary', 'link' => 'index.php?page=admin/plotting_data']
+            ['title' => 'Belum Plotting', 'value' => $c_unplot, 'icon' => 'fa-user-slash', 'color' => 'secondary', 'link' => 'index.php?page=admin/plotting_data'],
+            ['title' => 'Belum Absen', 'value' => $c_belum_absen, 'icon' => 'fa-user-clock', 'color' => 'danger', 'is_modal' => true, 'target' => '#modalBelumAbsen']
         ];
 
+    // ==========================================
+    // TAMPILAN PEMBIMBING
+    // ==========================================
     } elseif ($role == 'pembimbing') {
+        // Nama Guru
         $stmt = $pdo->prepare("SELECT nama_guru FROM pembimbing WHERE id_pembimbing = ?");
         $stmt->execute([$id_ref]);
         $nama_display = $stmt->fetchColumn();
 
+        // Hitung Siswa
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM siswa WHERE id_pembimbing = ?");
         $stmt->execute([$id_ref]);
         $c_siswa = $stmt->fetchColumn();
 
+        // Hitung Jurnal Pending
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM jurnal_harian j JOIN siswa s ON j.id_siswa = s.id_siswa WHERE s.id_pembimbing = ? AND j.status_validasi = 'Pending'");
         $stmt->execute([$id_ref]);
         $c_pending = $stmt->fetchColumn();
 
+        // Hitung Siswa Belum Absen
         $stmt_ba = $pdo->prepare("SELECT s.nama_lengkap, s.kelas, p.nama_perusahaan FROM siswa s LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan WHERE s.id_pembimbing = ? AND s.id_siswa NOT IN (SELECT id_siswa FROM absensi WHERE tanggal = ?) ORDER BY s.nama_lengkap ASC");
         $stmt_ba->execute([$id_ref, $hari_ini]);
         $siswa_belum_absen = $stmt_ba->fetchAll(PDO::FETCH_ASSOC);
         $c_belum_absen = count($siswa_belum_absen);
 
+        // [BARU] Hitung & Ambil Data DUDI Binaan
+        // Menggunakan DISTINCT agar jika ada 3 siswa di 1 PT, dihitung 1 PT.
+        $sql_dudi = "SELECT DISTINCT p.* FROM siswa s 
+                     JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan 
+                     WHERE s.id_pembimbing = ?";
+        $stmt_dudi = $pdo->prepare($sql_dudi);
+        $stmt_dudi->execute([$id_ref]);
+        $dudi_bimbingan_list = $stmt_dudi->fetchAll(PDO::FETCH_ASSOC);
+        $c_dudi_binaan = count($dudi_bimbingan_list);
+
         $info_cards = [
             ['title' => 'Siswa Bimbingan', 'value' => $c_siswa, 'icon' => 'fa-user-graduate', 'color' => 'primary', 'link' => 'index.php?page=pembimbing/validasi_daftar_siswa'],
-            ['title' => 'Jurnal Pending', 'value' => $c_pending, 'icon' => 'fa-file-signature', 'color' => 'warning', 'link' => 'index.php?page=pembimbing/validasi_daftar_siswa']
+            ['title' => 'Jurnal Pending', 'value' => $c_pending, 'icon' => 'fa-file-signature', 'color' => 'warning', 'link' => 'index.php?page=pembimbing/validasi_daftar_siswa'],
+            ['title' => 'Belum Absen', 'value' => $c_belum_absen, 'icon' => 'fa-user-clock', 'color' => 'danger', 'is_modal' => true, 'target' => '#modalBelumAbsen'],
+            // [KARTU BARU] Mitra DUDI
+            ['title' => 'Mitra DUDI', 'value' => $c_dudi_binaan, 'icon' => 'fa-building', 'color' => 'info', 'is_modal' => true, 'target' => '#modalDudiBimbingan']
         ];
 
+    // ==========================================
+    // TAMPILAN SISWA
+    // ==========================================
     } elseif ($role == 'siswa') {
         $stmt = $pdo->prepare("SELECT s.nama_lengkap, p.nama_perusahaan, g.nama_guru FROM siswa s LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan LEFT JOIN pembimbing g ON s.id_pembimbing = g.id_pembimbing WHERE s.id_siswa = ?");
         $stmt->execute([$id_ref]);
@@ -66,8 +96,8 @@ try {
         
         if ($data) {
             $nama_display = $data['nama_lengkap'];
-            $tempat_pkl = $data['nama_perusahaan'] ?? 'Belum Ditempatkan';
-            $guru_pkl = $data['nama_guru'] ?? 'Belum Diatur';
+            $tempat_pkl = !empty($data['nama_perusahaan']) ? $data['nama_perusahaan'] : 'Belum Ditempatkan';
+            $nama_pembimbing = !empty($data['nama_guru']) ? $data['nama_guru'] : 'Belum Diatur';
         } else {
             $nama_display = $username;
             $tempat_pkl = '-'; $guru_pkl = '-';
@@ -78,15 +108,6 @@ try {
 ?>
 
 <style>
-    /* --- NEW: Background Pattern Style --- */
-    body {
-        /* Light blue-grey base */
-        background-color: #f5f7fa; 
-        /* Radial Dot Pattern */
-        background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
-        background-size: 24px 24px;
-    }
-
     .stat-card {
         transition: all 0.3s ease;
         border: none;
@@ -94,12 +115,10 @@ try {
         background: #fff;
         position: relative;
         overflow: hidden;
-        /* Added stronger shadow to pop against pattern */
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
     }
     .icon-box {
         width: 50px; height: 50px;
@@ -116,17 +135,15 @@ try {
     .bg-soft-secondary { background-color: rgba(108, 117, 125, 0.1); color: #6c757d; }
 
     .welcome-banner {
-        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        background: linear-gradient(45deg, #0d6efd, #0dcaf0);
         color: white;
         border-radius: 15px;
         padding: 2rem;
         margin-bottom: 2rem;
-        position: relative;
-        z-index: 1;
     }
 </style>
 
-<div class="welcome-banner shadow">
+<div class="welcome-banner shadow-sm">
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h2 class="fw-bold mb-1">Halo, <?php echo htmlspecialchars($nama_display); ?>! 👋</h2>
@@ -138,14 +155,6 @@ try {
     </div>
 </div>
 
-<div id="installContainer" class="alert alert-primary shadow-sm border-0 d-flex align-items-center justify-content-between mb-4" role="alert" style="display: none;">
-    <div>
-        <i class="fas fa-mobile-alt fa-lg me-2"></i>
-        <strong>Install Aplikasi?</strong> <span class="small">Akses lebih cepat tanpa browser.</span>
-    </div>
-    <button id="btnInstall" class="btn btn-sm btn-light text-primary fw-bold rounded-pill px-3">Install</button>
-</div>
-
 <?php if (!empty($info_cards)): ?>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="text-muted fw-bold text-uppercase small ls-1 mb-0">Ringkasan Data</h5>
@@ -154,41 +163,29 @@ try {
     <div class="row g-3 mb-4">
         <?php foreach ($info_cards as $card): ?>
             <div class="col-12 col-sm-6 col-xl-3"> 
-                <a href="<?php echo $card['link']; ?>" class="text-decoration-none">
-                    <div class="card stat-card h-100">
-                        <div class="card-body p-3">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <p class="text-muted small mb-1 fw-bold text-uppercase"><?php echo $card['title']; ?></p>
-                                    <h2 class="fw-bold mb-0 text-dark"><?php echo $card['value']; ?></h2>
-                                </div>
-                                <div class="icon-box bg-soft-<?php echo $card['color']; ?>">
-                                    <i class="fas <?php echo $card['icon']; ?>"></i>
-                                </div>
+                <?php 
+                    if (isset($card['is_modal'])) {
+                        echo '<div class="card stat-card h-100 shadow-sm cursor-pointer" data-bs-toggle="modal" data-bs-target="'.$card['target'].'" style="cursor:pointer">';
+                    } else {
+                        echo '<a href="'.$card['link'].'" class="text-decoration-none"><div class="card stat-card h-100 shadow-sm">';
+                    }
+                ?>
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted small mb-1 fw-bold text-uppercase"><?php echo $card['title']; ?></p>
+                                <h2 class="fw-bold mb-0 text-dark"><?php echo $card['value']; ?></h2>
+                            </div>
+                            <div class="icon-box bg-soft-<?php echo $card['color']; ?>">
+                                <i class="fas <?php echo $card['icon']; ?>"></i>
                             </div>
                         </div>
                     </div>
-                </a>
+                <?php 
+                    if (isset($card['is_modal'])) echo '</div>'; else echo '</div></a>'; 
+                ?>
             </div>
         <?php endforeach; ?>
-
-        <?php if ($role == 'admin' || $role == 'pembimbing'): ?>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card stat-card h-100" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalBelumAbsen">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <p class="text-muted small mb-1 fw-bold text-uppercase text-danger">Belum Absen Hari Ini</p>
-                            <h2 class="fw-bold mb-0 text-danger"><?php echo $c_belum_absen; ?></h2>
-                        </div>
-                        <div class="icon-box bg-soft-danger">
-                            <i class="fas fa-user-clock"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 <?php endif; ?>
 
@@ -215,7 +212,7 @@ try {
                     </div>
                     <div>
                         <small class="text-muted text-uppercase fw-bold">Guru Pembimbing</small>
-                        <h5 class="mb-0 fw-bold text-success"><?php echo htmlspecialchars($guru_pkl); ?></h5>
+                        <h5 class="mb-0 fw-bold text-success"><?php echo htmlspecialchars($nama_pembimbing); ?></h5>
                     </div>
                 </div>
             </div>
@@ -259,7 +256,7 @@ try {
                                 <?php echo nl2br(substr($info['isi'], 0, 80)) . (strlen($info['isi']) > 80 ? '...' : ''); ?>
                             </p>
                             <?php if(strlen($info['isi']) > 80): ?>
-                                <a href="#" class="small text-decoration-none mt-1 d-block" data-bs-toggle="modal" data-bs-target="#modalPengumuman<?php echo $info['id_pengumuman']; ?>">Baca selengkapnya</a>
+                                <a href="#" class="small text-decoration-none mt-1 d-block" data-bs-toggle="3333333333-" data-bs-target="#modalPengumuman<?php echo $info['id_pengumuman']; ?>">Baca selengkapnya</a>
                             <?php endif; ?>
                         </div>
 
@@ -326,9 +323,48 @@ try {
 </div>
 <?php endif; ?>
 
-<?php if ($role == 'admin'): ?>
+<?php if ($role == 'pembimbing' && !empty($dudi_bimbingan_list)): ?>
+<div class="modal fade" id="modalDudiBimbingan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-building me-2"></i>Daftar Mitra DUDI Bimbingan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table id="tableDudiBimbingan" class="table table-hover table-striped mb-0 w-100">
+                    <thead class="table-light">
+                        <tr><th>No</th><th>Nama Perusahaan</th><th>Alamat</th><th>Kontak</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php $no=1; foreach ($dudi_bimbingan_list as $d): ?>
+                            <tr>
+                                <td><?php echo $no++; ?></td>
+                                <td class="fw-bold text-primary"><?php echo htmlspecialchars($d['nama_perusahaan']); ?></td>
+                                <td><?php echo htmlspecialchars($d['alamat']); ?></td>
+                                <td>
+                                    <?php echo htmlspecialchars($d['kontak_person']); ?>
+                                    <br>
+                                    <small class="text-muted"><?php echo htmlspecialchars($d['no_telp']); ?></small>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // 1. CHART JS (Admin)
+    <?php if ($role == 'admin'): ?>
     const ctx = document.getElementById('adminChart').getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
@@ -346,78 +382,26 @@ try {
             plugins: { legend: { position: 'bottom' } }
         }
     });
-</script>
-<?php endif; ?>
+    <?php endif; ?>
 
-<script>
-$(document).ready(function() {
-    $('#modalBelumAbsen').on('shown.bs.modal', function () {
-        if (!$.fn.DataTable.isDataTable('#tableBelumAbsen')) {
-            $('#tableBelumAbsen').DataTable({
-                "pageLength": 5, "lengthChange": false, "searching": true, "info": false
-            });
-        }
+    // 2. DATATABLES UNTUK MODAL
+    $(document).ready(function() {
+        // Init Table Belum Absen
+        $('#modalBelumAbsen').on('shown.bs.modal', function () {
+            if (!$.fn.DataTable.isDataTable('#tableBelumAbsen')) {
+                $('#tableBelumAbsen').DataTable({
+                    "pageLength": 5, "lengthChange": false, "searching": true, "info": false
+                });
+            }
+        });
+
+        // Init Table DUDI Bimbingan
+        $('#modalDudiBimbingan').on('shown.bs.modal', function () {
+            if (!$.fn.DataTable.isDataTable('#tableDudiBimbingan')) {
+                $('#tableDudiBimbingan').DataTable({
+                    "pageLength": 5, "lengthChange": false, "searching": true, "info": false
+                });
+            }
+        });
     });
-});
-</script>
-
-<script>
-// -------------------------------------------------------
-// LOGIKA INSTALL PWA (AUTO HIDE)
-// -------------------------------------------------------
-let deferredPrompt;
-const installContainer = document.getElementById('installContainer');
-const btnInstall = document.getElementById('btnInstall');
-
-// 1. Cek apakah aplikasi sedang berjalan di mode STANDALONE (Sudah diinstall)
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-// Jika sudah diinstall/dibuka lewat aplikasi, jangan tampilkan tombol
-if (isStandalone && installContainer) {
-    installContainer.style.display = 'none';
-}
-
-// 2. Event: Browser mendeteksi website BISA diinstall
-window.addEventListener('beforeinstallprompt', (e) => {
-    // Mencegah browser menampilkan pop-up default mini
-    e.preventDefault();
-    // Simpan event untuk dipicu nanti
-    deferredPrompt = e;
-    
-    // TAMPILKAN tombol install HANYA JIKA belum diinstall
-    if (installContainer && !isStandalone) {
-        installContainer.style.display = 'flex';
-    }
-});
-
-// 3. Event: Saat user klik tombol Install
-if (btnInstall) {
-    btnInstall.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            // Picu prompt asli browser
-            deferredPrompt.prompt();
-            
-            // Tunggu respon user
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response: ${outcome}`);
-            
-            // Hapus event
-            deferredPrompt = null;
-            
-            // Sembunyikan tombol (agar tidak bisa diklik lagi)
-            installContainer.style.display = 'none';
-        }
-    });
-}
-
-// 4. Event: DETEKSI SUKSES INSTALL
-// Ini akan berjalan otomatis setelah instalasi selesai
-window.addEventListener('appinstalled', () => {
-    // Sembunyikan container tombol secara permanen
-    if (installContainer) {
-        installContainer.style.display = 'none';
-    }
-    console.log('PWA Berhasil Diinstall');
-    deferredPrompt = null;
-});
 </script>

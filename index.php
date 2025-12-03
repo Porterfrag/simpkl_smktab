@@ -139,6 +139,7 @@ if (in_array($page, $action_pages)) {
                             <li><a class="dropdown-item" href="index.php?page=admin/pengumuman_data">Daftar Pengumuman</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/pengaturan_edit">Pengaturan Sistem</a></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/system_logs">Logs</a></li>
                         </ul>
                     </li>
 

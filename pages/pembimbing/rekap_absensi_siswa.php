@@ -54,10 +54,11 @@ try {
         }
     }
     
+    // Diubah ke DESC agar yang terbaru di atas
     $sql_detail = "SELECT tanggal, status, keterangan, dicatat_oleh, bukti_foto, id_absensi 
                    FROM absensi 
                    WHERE id_siswa = :id_siswa AND (status = 'Izin' OR status = 'Sakit' OR status = 'Alpha')
-                   ORDER BY tanggal ASC";
+                   ORDER BY tanggal DESC"; 
     $stmt_detail = $pdo->prepare($sql_detail);
     $stmt_detail->execute(['id_siswa' => $id_siswa]);
     $detail_list = $stmt_detail->fetchAll(PDO::FETCH_ASSOC);
@@ -65,12 +66,15 @@ try {
 } catch (PDOException $e) {
     echo "<div class='alert alert-danger' role='alert'>Gagal mengambil data rekap: " . $e->getMessage() . "</div>";
 }
+
+// --- LOGIKA PAGINASI PHP BARU ---
+$data_per_halaman = 5; // Jumlah detail per halaman
+$total_ketidakhadiran = count($detail_list);
+$total_halaman = ceil($total_ketidakhadiran / $data_per_halaman);
 ?>
 
-<!-- --- TAMPILAN MOBILE FOCUSED --- -->
 <div class="container-fluid px-0">
 
-    <!-- Header Navigasi -->
     <div class="d-flex align-items-center mb-3 bg-white p-3 shadow-sm rounded">
         <a href="index.php?page=pembimbing/validasi_daftar_siswa" class="btn btn-light btn-sm me-3 text-secondary rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
             <i class="fas fa-arrow-left"></i>
@@ -79,13 +83,11 @@ try {
             <small class="text-muted d-block">Rekap Absensi</small>
             <h5 class="mb-0 fw-bold text-dark text-truncate"><?php echo htmlspecialchars($nama_siswa); ?></h5>
         </div>
-        <!-- Tombol Export di Header -->
         <a href="pages/pembimbing/export_absensi_detail.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-success btn-sm ms-2" title="Export Excel">
             <i class="fas fa-file-excel"></i>
         </a>
     </div>
-
-    <!-- --- BAGIAN DASHBOARD STATISTIK (GRID 2x2) --- -->
+    
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2 px-1">
             <h6 class="fw-bold text-secondary mb-0">Ringkasan Kehadiran</h6>
@@ -93,7 +95,6 @@ try {
         </div>
         
         <div class="row g-2">
-            <!-- Card Hadir -->
             <div class="col-6">
                 <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
                     <div class="card-body p-3 d-flex flex-column justify-content-between">
@@ -106,7 +107,6 @@ try {
                 </div>
             </div>
 
-            <!-- Card Izin -->
             <div class="col-6">
                 <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #cce5ff 0%, #b8daff 100%);">
                     <div class="card-body p-3 d-flex flex-column justify-content-between">
@@ -119,7 +119,6 @@ try {
                 </div>
             </div>
 
-            <!-- Card Sakit -->
             <div class="col-6">
                 <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);">
                     <div class="card-body p-3 d-flex flex-column justify-content-between">
@@ -132,7 +131,6 @@ try {
                 </div>
             </div>
 
-            <!-- Card Alpha -->
             <div class="col-6">
                 <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);">
                     <div class="card-body p-3 d-flex flex-column justify-content-between">
@@ -147,13 +145,14 @@ try {
         </div>
     </div>
 
-    <!-- --- BAGIAN RINCIAN DETAIL (CARD LIST) --- -->
+    ---
+
     <h6 class="fw-bold text-secondary border-bottom pb-2 mb-3">
         <i class="fas fa-history me-2"></i>Riwayat Ketidakhadiran
     </h6>
 
-    <div id="attendanceList">
-        <?php foreach ($detail_list as $item): ?>
+    <div id="attendanceListContainer">
+        <?php foreach ($detail_list as $index => $item): ?>
             <?php 
                 $status = htmlspecialchars($item['status']);
                 
@@ -177,7 +176,7 @@ try {
                 }
             ?>
 
-            <div class="card mb-3 shadow-sm border-0 border-start border-4 <?php echo $borderClass; ?>">
+            <div class="card mb-3 shadow-sm border-0 border-start border-4 <?php echo $borderClass; ?> absensi-item" data-index="<?php echo $index; ?>">
                 <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
@@ -214,7 +213,7 @@ try {
         <?php endforeach; ?>
 
         <?php if (empty($detail_list)): ?>
-            <div class="text-center py-5 text-muted bg-light rounded">
+            <div class="text-center py-5 text-muted bg-light rounded" id="emptyAbsensiMessage">
                 <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i>
                 <p class="mb-0 fw-bold">Siswa Rajin!</p>
                 <small>Tidak ada riwayat izin, sakit, atau alpha.</small>
@@ -222,7 +221,141 @@ try {
         <?php endif; ?>
     </div>
     
-    <!-- Footer Helper (Optional spacer) -->
+    <?php if ($total_halaman > 1): ?>
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Absensi Paginasi">
+            <ul class="pagination pagination-sm" id="absensiPagination">
+                </ul>
+        </nav>
+    </div>
+    <?php endif; ?>
+    
     <div class="mb-5"></div>
 
 </div>
+
+<script>
+// --- SCRIPT PAGINASI ABSENSI (MENGGUNAKAN JAVASCRIPT) ---
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const itemsPerPage = <?php echo $data_per_halaman; ?>;
+    const absensiItems = document.querySelectorAll('.absensi-item');
+    const paginationContainer = document.getElementById('absensiPagination');
+    const listContainer = document.getElementById('attendanceListContainer');
+    const totalItems = absensiItems.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    let currentPage = 1;
+
+    function displayItems(page) {
+        // Jika tidak ada absensi, jangan lakukan apa-apa
+        if (totalItems === 0) return;
+
+        currentPage = page;
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+
+        absensiItems.forEach((item, index) => {
+            // Gunakan display 'none' dan 'block' untuk menyembunyikan/menampilkan
+            if (index >= start && index < end) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function setupPagination() {
+        if (totalPages <= 1) return;
+
+        paginationContainer.innerHTML = ''; // Kosongkan
+        
+        // Tombol Previous
+        const prevItem = document.createElement('li');
+        prevItem.classList.add('page-item');
+        if (currentPage === 1) prevItem.classList.add('disabled');
+        const prevLink = document.createElement('a');
+        prevLink.classList.add('page-link');
+        prevLink.href = '#';
+        prevLink.innerHTML = '&laquo;';
+        prevLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage > 1) {
+                displayItems(currentPage - 1);
+                setupPagination();
+                listContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        prevItem.appendChild(prevLink);
+        paginationContainer.appendChild(prevItem);
+
+        // Nomor Halaman
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+
+        if (currentPage <= 3) {
+            endPage = Math.min(totalPages, 5);
+        } else if (currentPage > totalPages - 3) {
+            startPage = Math.max(1, totalPages - 4);
+        }
+
+        if (startPage > 1) {
+             const ellipsisStart = document.createElement('li');
+             ellipsisStart.classList.add('page-item', 'disabled');
+             ellipsisStart.innerHTML = '<span class="page-link">...</span>';
+             paginationContainer.appendChild(ellipsisStart);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const pageItem = document.createElement('li');
+            pageItem.classList.add('page-item');
+            if (i === currentPage) pageItem.classList.add('active');
+
+            const pageLink = document.createElement('a');
+            pageLink.classList.add('page-link');
+            pageLink.href = '#';
+            pageLink.textContent = i;
+            pageLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                displayItems(i);
+                setupPagination();
+                listContainer.scrollIntoView({ behavior: 'smooth' });
+            });
+
+            pageItem.appendChild(pageLink);
+            paginationContainer.appendChild(pageItem);
+        }
+
+        if (endPage < totalPages) {
+             const ellipsisEnd = document.createElement('li');
+             ellipsisEnd.classList.add('page-item', 'disabled');
+             ellipsisEnd.innerHTML = '<span class="page-link">...</span>';
+             paginationContainer.appendChild(ellipsisEnd);
+        }
+
+        // Tombol Next
+        const nextItem = document.createElement('li');
+        nextItem.classList.add('page-item');
+        if (currentPage === totalPages) nextItem.classList.add('disabled');
+        const nextLink = document.createElement('a');
+        nextLink.classList.add('page-link');
+        nextLink.href = '#';
+        nextLink.innerHTML = '&raquo;';
+        nextLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) {
+                displayItems(currentPage + 1);
+                setupPagination();
+                listContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        nextItem.appendChild(nextLink);
+        paginationContainer.appendChild(nextItem);
+    }
+    
+    // Inisialisasi tampilan
+    if (totalItems > 0) {
+        displayItems(1); // Tampilkan halaman pertama saat dimuat
+        setupPagination();
+    }
+});
+</script>

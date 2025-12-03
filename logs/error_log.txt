@@ -1,0 +1,8 @@
+[03-Dec-2025 08:29:45 Asia/Makassar] PHP Fatal error:  Uncaught Error: Call to undefined function cekActive() in C:\xampp\htdocs\simpkl_smktab\index.php:142
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\simpkl_smktab\index.php on line 142
+[03-Dec-2025 08:29:48 Asia/Makassar] PHP Fatal error:  Uncaught Error: Call to undefined function cekActive() in C:\xampp\htdocs\simpkl_smktab\index.php:142
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\simpkl_smktab\index.php on line 142

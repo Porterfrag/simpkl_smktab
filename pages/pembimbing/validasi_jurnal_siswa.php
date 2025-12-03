@@ -137,12 +137,22 @@ try {
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
 }
+
+// --- LOGIKA PAGINASI PHP BARU ---
+$data_per_halaman = 5; // Jumlah data per halaman
+$total_jurnal = count($jurnal_list);
+$total_halaman = ceil($total_jurnal / $data_per_halaman);
+$halaman_aktif = isset($_GET['halaman']) ? (int)$_GET['halaman'] : 1;
+if ($halaman_aktif < 1) $halaman_aktif = 1;
+if ($halaman_aktif > $total_halaman) $halaman_aktif = $total_halaman;
+$offset = ($halaman_aktif - 1) * $data_per_halaman;
+
+// Di sini kita tidak perlu memotong array karena paginasi akan dilakukan oleh JS
+
 ?>
 
-<!-- --- TAMPILAN MOBILE FOCUSED (BOOTSTRAP 5) --- -->
 <div class="container-fluid px-0">
     
-    <!-- Header Navigasi -->
     <div class="d-flex align-items-center mb-3 bg-white p-3 shadow-sm rounded">
         <a href="index.php?page=pembimbing/validasi_daftar_siswa" class="btn btn-light btn-sm me-3 text-secondary rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
             <i class="fas fa-arrow-left"></i>
@@ -153,7 +163,6 @@ try {
         </div>
     </div>
 
-    <!-- Tombol Cetak (Grid Layout) -->
     <div class="row g-2 mb-4">
         <div class="col-6">
             <a href="cetak_jurnal.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center h-100 py-2">
@@ -167,7 +176,6 @@ try {
         </div>
     </div>
 
-    <!-- --- BAGIAN INPUT NILAI (Collapsible Card) --- -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-primary bg-gradient text-white d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold"><i class="fas fa-star me-2"></i>Input Nilai Akhir</h6>
@@ -226,7 +234,6 @@ try {
         </div>
     </div>
 
-    <!-- --- BAGIAN VALIDASI JURNAL (Card Layout) --- -->
     <h6 class="mb-3 fw-bold text-secondary border-bottom pb-2">
         <i class="fas fa-book-reader me-2"></i>Riwayat Jurnal
     </h6>
@@ -245,7 +252,7 @@ try {
     <?php endif; ?>
 
     <div id="jurnalListContainer">
-        <?php foreach ($jurnal_list as $jurnal): ?>
+        <?php foreach ($jurnal_list as $index => $jurnal): ?>
             <?php 
                 $status = $jurnal['status_validasi'];
                 $isPending = ($status == 'Pending');
@@ -257,8 +264,7 @@ try {
                 if($status == 'Pending') $borderClass = 'border-warning';
             ?>
             
-            <div class="card mb-3 shadow-sm border-0 border-start border-4 <?php echo $borderClass; ?>">
-                <!-- Card Header: Tanggal & Badge Status (jika sudah divalidasi) -->
+            <div class="card mb-3 shadow-sm border-0 border-start border-4 <?php echo $borderClass; ?> jurnal-item" data-index="<?php echo $index; ?>">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-bottom-0">
                     <span class="fw-bold text-dark">
                         <i class="far fa-calendar-alt me-1 text-muted"></i> <?php echo date('d M Y', strtotime($jurnal['tanggal'])); ?>
@@ -273,12 +279,10 @@ try {
                 </div>
 
                 <div class="card-body pt-0 pb-3">
-                    <!-- Konten Kegiatan -->
                     <p class="card-text mb-3 text-dark" style="white-space: pre-line;">
                         <?php echo htmlspecialchars($jurnal['kegiatan']); ?>
                     </p>
                     
-                    <!-- Tombol Foto (Full Width jika ada) -->
                     <?php if (!empty($jurnal['foto_kegiatan'])): ?>
                         <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-3" 
                                 data-bs-toggle="modal" 
@@ -289,10 +293,8 @@ try {
                         </button>
                     <?php endif; ?>
 
-                    <!-- AREA AKSI (FORM) -->
                     <div class="bg-light rounded p-2 mt-2">
                         <?php if ($isPending): ?>
-                            <!-- Form Validasi -->
                             <form action="index.php?page=pembimbing/validasi_jurnal_siswa&id_siswa=<?php echo $id_siswa; ?>" method="POST">
                                 <input type="hidden" name="id_jurnal" value="<?php echo $jurnal['id_jurnal']; ?>">
                                 
@@ -314,7 +316,6 @@ try {
                                 </div>
                             </form>
                         <?php else: ?>
-                            <!-- Tampilan Read-Only Hasil Validasi -->
                             <div class="small">
                                 <span class="fw-bold text-secondary">Catatan Anda:</span>
                                 <p class="mb-0 text-muted fst-italic">
@@ -328,15 +329,23 @@ try {
         <?php endforeach; ?>
 
         <?php if (empty($jurnal_list)): ?>
-            <div class="text-center py-5 text-muted">
+            <div class="text-center py-5 text-muted" id="emptyJurnalMessage">
                 <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
                 <p>Siswa belum mengisi jurnal harian.</p>
             </div>
         <?php endif; ?>
     </div>
+    
+    <?php if ($total_halaman > 1): ?>
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Jurnal Paginasi">
+            <ul class="pagination pagination-sm" id="jurnalPagination">
+                </ul>
+        </nav>
+    </div>
+    <?php endif; ?>
 </div>
 
-<!-- Modal Lihat Foto (Standard Bootstrap 5) -->
 <div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -379,5 +388,102 @@ document.addEventListener('DOMContentLoaded', function() {
     fotoModal.addEventListener('hidden.bs.modal', function () {
         document.getElementById('imgPreview').src = "";
     });
+    
+    // --- SCRIPT PAGINASI JURNAL (MENGGUNAKAN JAVASCRIPT) ---
+    
+    const itemsPerPage = <?php echo $data_per_halaman; ?>;
+    const jurnalItems = document.querySelectorAll('.jurnal-item');
+    const paginationContainer = document.getElementById('jurnalPagination');
+    const totalItems = jurnalItems.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    let currentPage = 1;
+
+    function displayItems(page) {
+        // Jika tidak ada jurnal, jangan lakukan apa-apa
+        if (totalItems === 0) return;
+
+        currentPage = page;
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+
+        jurnalItems.forEach((item, index) => {
+            if (index >= start && index < end) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function setupPagination() {
+        if (totalPages <= 1) return;
+
+        paginationContainer.innerHTML = ''; // Kosongkan
+        
+        // Tombol Previous
+        const prevItem = document.createElement('li');
+        prevItem.classList.add('page-item');
+        if (currentPage === 1) prevItem.classList.add('disabled');
+        const prevLink = document.createElement('a');
+        prevLink.classList.add('page-link');
+        prevLink.href = '#';
+        prevLink.innerHTML = '&laquo;';
+        prevLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage > 1) {
+                displayItems(currentPage - 1);
+                setupPagination();
+                document.getElementById('jurnalListContainer').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        prevItem.appendChild(prevLink);
+        paginationContainer.appendChild(prevItem);
+
+        // Nomor Halaman
+        for (let i = 1; i <= totalPages; i++) {
+            const pageItem = document.createElement('li');
+            pageItem.classList.add('page-item');
+            if (i === currentPage) pageItem.classList.add('active');
+
+            const pageLink = document.createElement('a');
+            pageLink.classList.add('page-link');
+            pageLink.href = '#';
+            pageLink.textContent = i;
+            pageLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                displayItems(i);
+                setupPagination();
+                document.getElementById('jurnalListContainer').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            pageItem.appendChild(pageLink);
+            paginationContainer.appendChild(pageItem);
+        }
+        
+        // Tombol Next
+        const nextItem = document.createElement('li');
+        nextItem.classList.add('page-item');
+        if (currentPage === totalPages) nextItem.classList.add('disabled');
+        const nextLink = document.createElement('a');
+        nextLink.classList.add('page-link');
+        nextLink.href = '#';
+        nextLink.innerHTML = '&raquo;';
+        nextLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) {
+                displayItems(currentPage + 1);
+                setupPagination();
+                document.getElementById('jurnalListContainer').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        nextItem.appendChild(nextLink);
+        paginationContainer.appendChild(nextItem);
+    }
+    
+    // Inisialisasi tampilan
+    if (totalItems > 0) {
+        displayItems(1); // Tampilkan halaman pertama saat dimuat
+        setupPagination();
+    }
 });
 </script>
