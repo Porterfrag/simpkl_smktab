@@ -6,3 +6,9 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in C:\xampp\htdocs\simpkl_smktab\index.php on line 142
+[03-Dec-2025 11:25:44 Asia/Makassar] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\simpkl_smktab\pages\admin\pembimbing_hapus.php on line 2
+[03-Dec-2025 11:25:49 Asia/Makassar] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\simpkl_smktab\pages\admin\pembimbing_hapus.php on line 2
+[03-Dec-2025 11:25:51 Asia/Makassar] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\simpkl_smktab\pages\admin\pembimbing_hapus.php on line 2
+[03-Dec-2025 11:25:53 Asia/Makassar] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\simpkl_smktab\pages\admin\pembimbing_hapus.php on line 2
+[03-Dec-2025 11:25:55 Asia/Makassar] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\simpkl_smktab\pages\admin\pembimbing_hapus.php on line 2
+[03-Dec-2025 11:35:23 Asia/Makassar] PHP Warning:  Undefined variable $nama_pembimbing in C:\xampp\htdocs\simpkl_smktab\pages\dashboard.php on line 215
