@@ -142,6 +142,7 @@ try {
         padding: 2rem;
         margin-bottom: 2rem;
     }
+    
 </style>
 
 <div class="welcome-banner shadow-sm">
@@ -290,7 +291,6 @@ try {
     </div>
 </div>
 
-
 <?php if (($role == 'admin' || $role == 'pembimbing') && !empty($siswa_belum_absen)): ?>
 <div class="modal fade" id="modalBelumAbsen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -362,43 +362,59 @@ try {
 <?php endif; ?>
 
 
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    <?php if ($role == 'admin'): ?>
-    const ctx = document.getElementById('adminChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Siswa', 'DUDI', 'Guru', 'Jurnal Pending'],
-            datasets: [{
-                data: [<?php echo $c_siswa; ?>, <?php echo $c_dudi; ?>, <?php echo $c_guru; ?>, <?php echo $c_pending; ?>],
-                backgroundColor: ['#198754', '#0dcaf0', '#198754', '#ffc107'],
-                borderWidth: 0
-            }]
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-        }
-    });
-    <?php endif; ?>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
+<script>
+    // Pastikan kode ini berjalan setelah jQuery ($) sudah dimuat di atas
     $(document).ready(function() {
+        
+        // --- KODE DATATABLES ---
         $('#modalBelumAbsen').on('shown.bs.modal', function () {
             if (!$.fn.DataTable.isDataTable('#tableBelumAbsen')) {
                 $('#tableBelumAbsen').DataTable({
-                    "pageLength": 5, "lengthChange": false, "searching": true, "info": false
+                    "pageLength": 5,
+                    "lengthChange": false,
+                    "searching": false,
+                    "info": false,
+                    // Tambahan bahasa indonesia agar lebih rapi
+                    "language": {
+                        "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+                    }
                 });
             }
         });
 
         $('#modalDudiBimbingan').on('shown.bs.modal', function () {
-            if (!$.fn.DataTable.isDataTable('#tableDudiBimbingan')) {
+             if (!$.fn.DataTable.isDataTable('#tableDudiBimbingan')) {
                 $('#tableDudiBimbingan').DataTable({
-                    "pageLength": 5, "lengthChange": false, "searching": true, "info": false
+                    "pageLength": 5,
+                    "lengthChange": false
                 });
             }
         });
+
+        // --- KODE CHART.JS (ADMIN ONLY) ---
+        <?php if ($role == 'admin'): ?>
+        const ctx = document.getElementById('adminChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Siswa', 'DUDI', 'Guru', 'Jurnal Pending'],
+                datasets: [{
+                    data: [<?php echo $c_siswa; ?>, <?php echo $c_dudi; ?>, <?php echo $c_guru; ?>, <?php echo $c_pending; ?>],
+                    backgroundColor: ['#198754', '#0dcaf0', '#198754', '#ffc107'],
+                    borderWidth: 0
+                }]
+            },
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+        <?php endif; ?>
     });
 </script>
