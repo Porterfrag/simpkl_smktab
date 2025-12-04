@@ -4,9 +4,11 @@ session_start();
 require '../../config/koneksi.php';
 
 // Cek Akses (Hanya Pembimbing)
-if (!isset($_SESSION['role']) || $_SESSION['role'] != 'pembimbing') {
+// [UBAH] Izinkan Admin DAN Pembimbing
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'pembimbing'])) {
     die("Akses dilarang!");
 }
+
 $id_pembimbing = $_SESSION['id_ref'];
 
 // Cek ID Siswa
@@ -15,18 +17,23 @@ if (!isset($_GET['id_siswa'])) {
 }
 $id_siswa = $_GET['id_siswa'];
 
-// Validasi Kepemilikan (Apakah siswa ini bimbingan pembimbing yang login?)
-try {
-    $stmt_cek = $pdo->prepare("SELECT nama_lengkap, nis, kelas FROM siswa WHERE id_siswa = :id AND id_pembimbing = :pmb");
-    $stmt_cek->execute([':id' => $id_siswa, ':pmb' => $id_pembimbing]);
-    $siswa = $stmt_cek->fetch(PDO::FETCH_ASSOC);
-
-    if (!$siswa) {
-        die("Data siswa tidak ditemukan atau bukan bimbingan Anda.");
-    }
-} catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+// [UBAH] Logika Validasi Kepemilikan
+// Jika Admin, LEWATI pengecekan "apakah ini siswa bimbingan saya?"
+if ($_SESSION['role'] == 'pembimbing') {
+    $id_pembimbing = $_SESSION['id_ref'];
+    try {
+        $stmt_cek = $pdo->prepare("SELECT nama_lengkap FROM siswa WHERE id_siswa = :id AND id_pembimbing = :pmb");
+        $stmt_cek->execute([':id' => $id_siswa, ':pmb' => $id_pembimbing]);
+        if (!$stmt_cek->fetch()) {
+            die("Data siswa tidak ditemukan atau bukan bimbingan Anda.");
+        }
+    } catch (PDOException $e) { die("Error DB"); }
 }
+
+// Ambil Data Siswa (Query ulang untuk ambil detail nama/kelas tanpa filter pembimbing)
+$stmt_info = $pdo->prepare("SELECT nama_lengkap, nis, kelas FROM siswa WHERE id_siswa = ?");
+$stmt_info->execute([$id_siswa]);
+$siswa = $stmt_info->fetch(PDO::FETCH_ASSOC);
 
 // Set Filename
 $filename = "Rekap_Absensi_" . str_replace(' ', '_', $siswa['nama_lengkap']) . "_" . date('Ymd') . ".xls";

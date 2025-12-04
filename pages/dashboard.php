@@ -293,7 +293,7 @@ try {
 </div>
 
 
-<?php if (($role == 'admin' || $role == 'pembimbing') && !empty($siswa_belum_absen)): ?>
+<?php if (($role == 'pembimbing') && !empty($siswa_belum_absen)): ?>
 <div class="modal fade" id="modalBelumAbsen" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">

@@ -1,5 +1,5 @@
 <?php
-ob_start(); 
+ob_start();
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require 'config/koneksi.php';
-require 'core/functions.php'; 
+require 'core/functions.php';
 
 // HITUNG NOTIFIKASI BELUM DIBACA (Untuk user yang login)
 $notif_count = 0;
@@ -26,10 +26,10 @@ $role = $_SESSION['role'];
 $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
 $action_pages = [
-    'admin/siswa_hapus', 
-    'admin/siswa_reset_password', 
-    'admin/perusahaan_hapus', 
-    'admin/pembimbing_hapus', 
+    'admin/siswa_hapus',
+    'admin/siswa_reset_password',
+    'admin/perusahaan_hapus',
+    'admin/pembimbing_hapus',
     'admin/pembimbing_reset_password',
     'siswa/jurnal_hapus',
     'admin/pengumuman_hapus'
@@ -39,7 +39,7 @@ if (in_array($page, $action_pages)) {
     $file_path = "pages/" . str_replace('../', '', $page) . '.php';
     if (file_exists($file_path)) {
         include $file_path;
-        exit; 
+        exit;
     }
 }
 ?>
@@ -49,7 +49,7 @@ if (in_array($page, $action_pages)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Informasi PKL</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -62,16 +62,16 @@ if (in_array($page, $action_pages)) {
     <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d6efd">
 <link rel="apple-touch-icon" href="assets/images/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <meta name="apple-mobile-web-app-title" content="SIMPKL">
+<meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <meta name="apple-mobile-web-app-title" content="SIPKL">
 
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('PWA Service Worker registered!', reg))
-        .catch(err => console.log('PWA Error:', err));
-    });
-  }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('PWA Service Worker registered!', reg))
+          .catch(err => console.log('PWA Error:', err));
+      });
+    }
 </script>
 <body style="background-color: #f4f6f9;">
 
@@ -79,7 +79,7 @@ if (in_array($page, $action_pages)) {
     <div class="container">
       <a class="navbar-brand d-flex align-items-center" href="index.php?page=dashboard">
     <img src="assets/images/logo-smk.png" alt="Logo" width="40" height="40" class="d-inline-block align-text-top me-2">
-    
+
     SIPKL SMKTAB
 </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,10 +90,10 @@ if (in_array($page, $action_pages)) {
                 <li class="nav-item">
                     <a class="nav-link <?php echo ($page == 'dashboard') ? 'active' : ''; ?>" href="index.php?page=dashboard">Home</a>
                 </li>
-                
+
                 <?php if ($role == 'admin'): ?>
-                    <?php 
-                        $active_manajemen = in_array($page, ['admin/siswa_data', 'admin/siswa_tambah', 'admin/siswa_edit', 'admin/siswa_import', 'admin/perusahaan_data', 'admin/perusahaan_tambah', 'admin/perusahaan_edit', 'admin/pembimbing_data', 'admin/pembimbing_tambah', 'admin/pembimbing_edit']) ? 'active' : '';
+                    <?php
+                        $active_manajemen = in_array($page, ['admin/siswa_data', 'admin/siswa_tambah', 'admin/siswa_edit', 'admin/siswa_import', 'admin/perusahaan_data', 'admin/perusahaan_tambah', 'admin/perusahaan_edit', 'admin/pembimbing_data', 'admin/pembimbing_tambah', 'admin/pembimbing_edit', 'admin/perusahaan_import', 'admin/pembimbing_import']) ? 'active' : '';
                     ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle <?php echo $active_manajemen; ?>" href="#" id="navbarDropdownManajemen" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -110,12 +110,12 @@ if (in_array($page, $action_pages)) {
                             <li><a class="dropdown-item" href="index.php?page=admin/pembimbing_import">Import Pembimbing (CSV)</a></li>
                         </ul>
                     </li>
-                    
-                    <?php 
-                        $active_kegiatan = in_array($page, ['admin/plotting_data', 'admin/plotting_edit', 'admin/rekap_nilai', 'admin/rekap_absensi_harian']) ? 'active' : '';
+
+                    <?php
+                        $active_kegiatan = in_array($page, ['admin/plotting_data', 'admin/plotting_edit', 'admin/rekap_nilai', 'admin/rekap_absensi_harian', 'admin/jurnal_data', 'admin/absensi_data']) ? 'active' : '';
                     ?>
                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Kegiatan PKL</a>
+                        <a class="nav-link dropdown-toggle <?php echo $active_kegiatan; ?>" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Kegiatan PKL</a>
                         <ul class="dropdown-menu shadow">
                             <li><a class="dropdown-item" href="index.php?page=admin/plotting_data">Plotting Siswa</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -127,8 +127,8 @@ if (in_array($page, $action_pages)) {
                         </ul>
                     </li>
 
-                    <?php 
-                        $active_pengumuman = in_array($page, ['admin/pengumuman_data', 'admin/pengumuman_tambah', 'admin/pengaturan_edit']) ? 'active' : '';
+                    <?php
+                        $active_pengumuman = in_array($page, ['admin/pengumuman_data', 'admin/pengumuman_tambah', 'admin/pengaturan_edit', 'admin/system_logs']) ? 'active' : '';
                     ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle <?php echo $active_pengumuman; ?>" href="#" id="navbarDropdownPengumuman" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -144,9 +144,12 @@ if (in_array($page, $action_pages)) {
                     </li>
 
                <?php elseif ($role == 'siswa'): ?>
-                    
+
+                    <?php
+                        $active_absensi_siswa = in_array($page, ['siswa/absensi', 'siswa/absensi_kalender']) ? 'active' : '';
+                    ?>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAbsensiSiswa" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle <?php echo $active_absensi_siswa; ?>" href="#" id="navbarDropdownAbsensiSiswa" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Absensi
                         </a>
                         <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownAbsensiSiswa">
@@ -155,8 +158,11 @@ if (in_array($page, $action_pages)) {
                         </ul>
                     </li>
 
+                    <?php
+                        $active_jurnal_siswa = in_array($page, ['siswa/jurnal_isi', 'siswa/jurnal_lihat']) ? 'active' : '';
+                    ?>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownJurnalSiswa" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle <?php echo $active_jurnal_siswa; ?>" href="#" id="navbarDropdownJurnalSiswa" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Jurnal Kegiatan
                         </a>
                         <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownJurnalSiswa">
@@ -164,37 +170,30 @@ if (in_array($page, $action_pages)) {
                             <li><a class="dropdown-item" href="index.php?page=siswa/jurnal_lihat">Riwayat Jurnal</a></li>
                         </ul>
                     </li>
-                
+
                 <?php elseif ($role == 'pembimbing'): ?>
-                    <?php 
-                        $active_validasi = in_array($page, ['pembimbing/validasi_daftar_siswa', 'pembimbing/validasi_jurnal_siswa', 'admin/rekap_nilai']) ? 'active' : '';
-                    ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle <?php echo $active_validasi; ?>" href="#" id="navbarDropdownValidasi" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Validasi & Nilai
-                        </a>
-                        <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownValidasi">
-                            <li><a class="dropdown-item" href="index.php?page=pembimbing/validasi_daftar_siswa">Daftar Siswa Bimbingan</a></li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo ($page == 'pembimbing/validasi_daftar_siswa') ? 'active' : ''; ?>" href="index.php?page=pembimbing/validasi_daftar_siswa">Daftar Siswa Bimbingan</a>
                     </li>
 
-                    <?php 
-                        $active_absensi = in_array($page, ['pembimbing/rekap_absensi_harian', 'pembimbing/rekap_absensi_siswa', 'pembimbing/rekap_kalender_siswa']) ? 'active' : '';
-                    ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle <?php echo $active_absensi; ?>" href="#" id="navbarDropdownAbsensi" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Absensi Siswa
-                        </a>
-                        <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownAbsensi">
-                            <li><a class="dropdown-item" href="index.php?page=pembimbing/rekap_absensi_harian">Absensi Harian</a></li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo ($page == 'pembimbing/rekap_absensi_harian') ? 'active' : ''; ?>" href="index.php?page=pembimbing/rekap_absensi_harian">Absensi Harian Siswa</a>
                     </li>
                 <?php endif; ?>
             </ul>
-            
+
            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-start">
+               <?php if($notif_count > 0): ?>
+                    <li class="nav-item me-lg-2">
+                        <a class="nav-link text-warning fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#notifikasiModal">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge rounded-pill bg-danger"><?php echo $notif_count; ?></span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
                 <li class="nav-item">
-                    <a class="nav-link" href="index.php?page=profil">Profil Saya</a>
+                    <a class="nav-link <?php echo ($page == 'profil') ? 'active' : ''; ?>" href="index.php?page=profil">Profil Saya</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="logout.php">Logout</a>
@@ -208,18 +207,25 @@ if (in_array($page, $action_pages)) {
     <div class="card shadow-sm border-0">
         <div class="card-body p-4 p-md-5">
             <?php
-            $page_file = str_replace('../', '', $page) . '.php'; 
+            $page_file = str_replace('../', '', $page) . '.php';
             $file_path = "pages/" . $page_file;
 
             if (file_exists($file_path)) {
-                if ($role == 'admin' && strpos($page, 'admin/') === 0) {
-                    include $file_path;
-                } elseif ($role == 'siswa' && strpos($page, 'siswa/') === 0) {
-                    include $file_path;
-                } elseif ($role == 'pembimbing' && strpos($page, 'pembimbing/') === 0) {
-                    include $file_path;
+                // Periksa akses berdasarkan peran (Role-Based Access Control)
+                $access_granted = false;
+                if ($role == 'admin' && (strpos($page, 'admin/') === 0 || $page == 'dashboard' || $page == 'profil')) {
+                    $access_granted = true;
+                } elseif ($role == 'siswa' && (strpos($page, 'siswa/') === 0 || $page == 'dashboard' || $page == 'profil')) {
+                    $access_granted = true;
+                } elseif ($role == 'pembimbing' && (strpos($page, 'pembimbing/') === 0 || $page == 'dashboard' || $page == 'profil')) {
+                    $access_granted = true;
                 } elseif (strpos($page, 'admin/') !== 0 && strpos($page, 'siswa/') !== 0 && strpos($page, 'pembimbing/') !== 0) {
-                    include $file_path; 
+                     // Halaman umum (dashboard, profil, dll. tanpa prefix role)
+                    $access_granted = true;
+                }
+
+                if ($access_granted) {
+                    include $file_path;
                 } else {
                     echo "<div class='alert alert-danger'>Error 403: Akses Dilarang.</div>";
                 }
@@ -255,82 +261,103 @@ if (in_array($page, $action_pages)) {
             placeholder: 'Pilih opsi...',
             allowClear: true
         });
-        // 3. [BARU] LOGIKA SWEETALERT UNTUK TOMBOL HAPUS
-        // Cari semua elemen dengan class 'btn-hapus'
+        // 3. LOGIKA SWEETALERT UNTUK TOMBOL HAPUS
         $(document).on('click', '.btn-hapus', function(e) {
-            e.preventDefault(); // Mencegah link langsung jalan
-            
-            var href = $(this).attr('href'); // Ambil alamat link
+            e.preventDefault();
+            var href = $(this).attr('href');
             
             Swal.fire({
                 title: 'Apakah Anda yakin?',
                 text: "Data yang dihapus tidak dapat dikembalikan!",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#dc3545', // Warna Merah
-                cancelButtonColor: '#6c757d',  // Warna Abu
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Ya, Hapus!',
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Jika user klik Ya, pindah ke link hapus
                     document.location.href = href;
                 }
             });
         });
 
-        // 3. [BARU] LOGIKA SWEETALERT UNTUK TOMBOL HAPUS
-        // Cari semua elemen dengan class 'btn-hapus'
+        // 3. LOGIKA SWEETALERT UNTUK TOMBOL ALPHA
         $(document).on('click', '.btn-alpha', function(e) {
-            e.preventDefault(); // Mencegah link langsung jalan
-            
-            var href = $(this).attr('href'); // Ambil alamat link
-            
+            e.preventDefault();
+            var href = $(this).attr('href');
+
             Swal.fire({
                 title: 'Apakah Anda yakin?',
                 text: "Tandai siswa ini alpha ?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#dc3545', // Warna Merah
-                cancelButtonColor: '#6c757d',  // Warna Abu
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Ya, tandai alpha!',
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Jika user klik Ya, pindah ke link hapus
                     document.location.href = href;
                 }
             });
         });
     });
 
-    // 4. [BONUS] SWEETALERT UNTUK PESAN PHP (FLASH MESSAGE)
-        // Kita cek apakah ada elemen alert sukses/gagal di halaman
-        
+    // 4. SWEETALERT UNTUK PESAN PHP (FLASH MESSAGE)
         var pesanSukses = $('.alert-success').text();
         var pesanError = $('.alert-danger').text();
 
         if(pesanSukses){
              Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: pesanSukses,
-                timer: 3000, // Tutup otomatis setelah 3 detik
-                showConfirmButton: false
-            });
-            // Sembunyikan alert bawaan bootstrap agar tidak dobel
-            $('.alert-success').hide(); 
+                 icon: 'success',
+                 title: 'Berhasil!',
+                 text: pesanSukses,
+                 timer: 3000,
+                 showConfirmButton: false
+             });
+             $('.alert-success').hide();
         }
 
         if(pesanError){
              Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: pesanError
-            });
-            $('.alert-danger').hide();
+                 icon: 'error',
+                 title: 'Gagal!',
+                 text: pesanError
+             });
+             $('.alert-danger').hide();
         }
 </script>
+
+<div class="modal fade" id="notifikasiModal" tabindex="-1" aria-labelledby="notifikasiModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notifikasiModalLabel">Notifikasi (<?php echo $notif_count; ?> Belum Dibaca)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <?php if ($notif_count > 0): ?>
+            <ul class="list-group list-group-flush">
+                <?php foreach ($notif_list as $notif): ?>
+                    <li class="list-group-item list-group-item-action list-group-item-primary">
+                        <small class="text-muted float-end"><?php echo date('d M H:i', strtotime($notif['tanggal'])); ?></small>
+                        <p class="mb-1 fw-bold"><?php echo htmlspecialchars($notif['judul']); ?></p>
+                        <p class="mb-1 small"><?php echo htmlspecialchars($notif['pesan']); ?></p>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <div class="alert alert-info text-center">Tidak ada notifikasi baru.</div>
+        <?php endif; ?>
+      </div>
+      <div class="modal-footer">
+        <a href="index.php?page=notifikasi_mark_all_read" class="btn btn-sm btn-outline-primary"><i class="fas fa-check-double"></i> Tandai Semua Sudah Dibaca</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="ios-install-prompt" class="fixed-bottom p-3 m-3 bg-white rounded shadow-lg border" style="display: none; z-index: 9999;">
     <div class="d-flex align-items-start">
         <img src="assets/images/icon-192.png" width="50" class="rounded me-3">
