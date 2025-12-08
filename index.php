@@ -184,15 +184,6 @@ if (in_array($page, $action_pages)) {
             </ul>
 
            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-flex align-items-start">
-               <?php if($notif_count > 0): ?>
-                    <li class="nav-item me-lg-2">
-                        <a class="nav-link text-warning fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#notifikasiModal">
-                            <i class="fas fa-bell"></i>
-                            <span class="badge rounded-pill bg-danger"><?php echo $notif_count; ?></span>
-                        </a>
-                    </li>
-                <?php endif; ?>
-
                 <li class="nav-item">
                     <a class="nav-link <?php echo ($page == 'profil') ? 'active' : ''; ?>" href="index.php?page=profil">Profil Saya</a>
                 </li>
