@@ -124,6 +124,7 @@ if (in_array($page, $action_pages)) {
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/rekap_nilai">Rekap Nilai Akhir</a></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/rekap_absensi_harian">Rekap Absensi Harian</a></li>
+                            <li><a class="dropdown-item" href="index.php?page=admin/rekap_absensi_kalender">Rekap Kalender Absensi</a></li>
                         </ul>
                     </li>
 

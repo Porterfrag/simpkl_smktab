@@ -1,6 +1,12 @@
-[04-Dec-2025 13:26:45 Asia/Makassar] PHP Warning:  Undefined array key "nama" in C:\xampp\htdocs\simpkl_smktab\pages\pembimbing\validasi_daftar_siswa.php on line 147
-[04-Dec-2025 13:26:45 Asia/Makassar] PHP Warning:  Undefined array key "nama" in C:\xampp\htdocs\simpkl_smktab\pages\pembimbing\validasi_daftar_siswa.php on line 151
-[04-Dec-2025 13:26:45 Asia/Makassar] PHP Warning:  Undefined array key "perusahaan_nama" in C:\xampp\htdocs\simpkl_smktab\pages\pembimbing\validasi_daftar_siswa.php on line 160
-[04-Dec-2025 13:26:55 Asia/Makassar] PHP Warning:  Undefined array key "nama" in C:\xampp\htdocs\simpkl_smktab\pages\pembimbing\validasi_daftar_siswa.php on line 147
-[04-Dec-2025 13:26:55 Asia/Makassar] PHP Warning:  Undefined array key "nama" in C:\xampp\htdocs\simpkl_smktab\pages\pembimbing\validasi_daftar_siswa.php on line 151
-[04-Dec-2025 13:26:55 Asia/Makassar] PHP Warning:  Undefined array key "perusahaan_nama" in C:\xampp\htdocs\simpkl_smktab\pages\pembimbing\validasi_daftar_siswa.php on line 160
+[08-Dec-2025 13:25:57 Asia/Makassar] PHP Fatal error:  Uncaught Error: Call to undefined function cekActive() in C:\xampp\htdocs\simpkl_smktab\index.php:128
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\simpkl_smktab\index.php on line 128
+[08-Dec-2025 13:27:40 Asia/Makassar] PHP Fatal error:  Uncaught Error: Call to undefined function cekActive() in C:\xampp\htdocs\simpkl_smktab\index.php:127
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\simpkl_smktab\index.php on line 127
+[08-Dec-2025 13:29:11 Asia/Makassar] PHP Fatal error:  Uncaught Error: Call to undefined function cekDropdownActive() in C:\xampp\htdocs\simpkl_smktab\index.php:118
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\simpkl_smktab\index.php on line 118
