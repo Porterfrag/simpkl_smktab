@@ -299,5 +299,6 @@ $is_current_month = ($bulan_pilihan == $bulan_ini_sekarang && $tahun_pilihan == 
         <span class="badge bg-primary bg-opacity-25 text-primary border border-primary">Izin</span>
         <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Sakit</span>
         <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Alpha</span>
+        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary">Libur</span>
     </div>
 </div>

@@ -323,6 +323,7 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
                     <span class="badge bg-primary bg-opacity-25 text-primary border border-primary">Izin</span>
                     <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Sakit</span>
                     <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Alpha</span>
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary">Libur</span>
                     <span class="badge bg-white text-danger border border-danger border-dashed" style="border-style: dashed !important;">! (Belum Absen)</span>
                 </div>
             </div>
