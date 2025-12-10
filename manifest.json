@@ -1,6 +1,6 @@
 {
   "name": "Sistem Informasi PKL SMK",
-  "short_name": "SIMPKL",
+  "short_name": "SIPKL",
   "start_url": "index.php",
   "display": "standalone",
   "background_color": "#f4f6f9",

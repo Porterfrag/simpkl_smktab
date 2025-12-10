@@ -129,13 +129,13 @@ try {
                 
                 <div class="col-md-6">
                     <label for="jam_absen" class="form-label fw-bold">Jam Masuk</label>
-                    <input type="time" class="form-control" name="jam_absen" id="jam_absen" value="<?php echo htmlspecialchars($data['jam_absen']); ?>">
+                    <input type="time" class="form-control" name="jam_absen" id="jam_absen" value="<?php echo htmlspecialchars($data['jam_absen'] ?? ''); ?>">
                 </div>
             </div>
 
             <div class="mb-4">
                 <label for="keterangan" class="form-label fw-bold">Keterangan / Alasan Koreksi</label>
-                <textarea class="form-control" name="keterangan" id="keterangan" rows="3"><?php echo htmlspecialchars($data['keterangan']); ?></textarea>
+                <textarea class="form-control" name="keterangan" id="keterangan" rows="3"><?php echo htmlspecialchars($data['keterangan'] ?? ''); ?></textarea>
             </div>
 
             <?php if (!empty($data['bukti_foto'])): ?>

@@ -138,26 +138,26 @@ try {
                             </div>
                         </div>
 
-                        <!-- Kolom 3: Tombol Aksi -->
-                        <div class="col-12 col-md-3">
-                            <!-- d-grid di mobile (full width), d-md-flex di desktop (auto width) -->
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <a href="index.php?page=pembimbing/validasi_jurnal_siswa&id_siswa=<?php echo $siswa['id_siswa']; ?>" 
-                                   class="btn btn-primary btn-sm">
-                                    Validasi
-                                </a>
-                                <div class="btn-group" role="group">
-                                    <a href="index.php?page=pembimbing/rekap_absensi_siswa&id_siswa=<?php echo $siswa['id_siswa']; ?>" 
-                                       class="btn btn-outline-secondary btn-sm" title="Rekap Absen">
-                                        <i class="fas fa-clipboard-list"></i>
-                                    </a>
-                                    <a href="index.php?page=pembimbing/rekap_kalender_siswa&id_siswa=<?php echo $siswa['id_siswa']; ?>" 
-                                       class="btn btn-outline-info btn-sm" title="Kalender">
-                                        <i class="fas fa-calendar-alt"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                       <div class="col-12 col-md-3">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                
+                <a href="index.php?page=pembimbing/validasi_jurnal_siswa&id_siswa=<?php echo $siswa['id_siswa']; ?>"
+                   class="btn btn-primary btn-sm">
+                    <i class="fas fa-book me-1"></i> Validasi Jurnal
+                </a>
+                
+                <a href="index.php?page=pembimbing/rekap_absensi_siswa&id_siswa=<?php echo $siswa['id_siswa']; ?>"
+                   class="btn btn-outline-secondary btn-sm" title="Rekap Absen">
+                    <i class="fas fa-clipboard-list me-1"></i> Rekap Absensi
+                </a>
+                
+                <a href="index.php?page=pembimbing/rekap_kalender_siswa&id_siswa=<?php echo $siswa['id_siswa']; ?>"
+                   class="btn btn-outline-info btn-sm" title="Kalender">
+                    <i class="fas fa-calendar-alt me-1"></i> Kalender Absensi
+                </a>
+                
+            </div>
+        </div>
 
                     </div>
                 </div>

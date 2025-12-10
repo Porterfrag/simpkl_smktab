@@ -57,7 +57,7 @@ class PDF extends FPDF
         $this->SetFont('Arial','B',14);
         $this->Cell(0, 10, 'JURNAL HARIAN PRAKTIK KERJA LAPANGAN', 0, 1, 'C');
         $this->SetFont('Arial','B',12);
-        $this->Cell(0, 10, 'SMKN 1 CODING', 0, 1, 'C'); 
+        $this->Cell(0, 10, 'SMKN 1 SUNGAI TABUK', 0, 1, 'C'); 
         $this->Ln(5); 
     }
 

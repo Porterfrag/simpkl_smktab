@@ -100,7 +100,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="w-full md:w-1/2 p-8 md:p-12">
                 <div class="text-center mb-6">
-                    <img src="assets/images/logo-smk.png" alt="Logo Sekolah" class="w-20 h-auto mx-auto mb-4">
+                    <img src="assets/images/icon-192.png" alt="Logo Sekolah" class="w-20 h-auto mx-auto mb-4">
                     <h2 class="text-2xl font-bold text-gray-800">Login SIPKL SMKTAB</h2>
                     <p class="text-gray-500 text-sm mt-1">Masukkan kredensial akun Anda</p>
                 </div>
