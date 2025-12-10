@@ -1,9 +1,61 @@
 <?php
 // --- 1. PHP LOGIC & SECURITY ---
+session_start(); // Pastikan session dimulai
 if (!isset($_SESSION['id_ref']) || $_SESSION['role'] != 'pembimbing') {
     die("Akses tidak sah!");
 }
 $id_pembimbing = $_SESSION['id_ref'];
+
+// Koneksi Database ($pdo) diasumsikan sudah ada dari file config yang di-include sebelumnya
+// include 'config.php'; 
+
+// --- [PERBAIKAN] LOGIKA SIMPAN KOREKSI ---
+if (isset($_POST['btn_simpan_koreksi'])) {
+    $k_id_siswa = $_POST['k_id_siswa'];
+    $k_tanggal  = $_POST['k_tanggal'];
+    $k_status   = $_POST['k_status'];
+    $k_catatan  = $_POST['k_catatan'];
+
+    try {
+        // Cek apakah data untuk tanggal tersebut sudah ada?
+        $cek = $pdo->prepare("SELECT id_absensi FROM absensi WHERE id_siswa = ? AND tanggal = ?");
+        $cek->execute([$k_id_siswa, $k_tanggal]);
+        
+        if ($cek->rowCount() > 0) {
+            // SKENARIO UPDATE (Data sudah ada)
+            $sql_update = "UPDATE absensi SET status = :stat, keterangan = :ket WHERE id_siswa = :id AND tanggal = :tgl";
+            $stmt = $pdo->prepare($sql_update);
+            $stmt->execute([':stat'=>$k_status, ':ket'=>$k_catatan, ':id'=>$k_id_siswa, ':tgl'=>$k_tanggal]);
+        } else {
+            // SKENARIO INSERT (Data Kosong)
+            // [DIPERBAIKI]: Menghapus 'lokasi_masuk', mengisi latitude/longitude dengan NULL (atau 0)
+            $sql_insert = "INSERT INTO absensi (id_siswa, tanggal, jam_absen, status, keterangan, latitude, longitude) 
+                           VALUES (:id, :tgl, NOW(), :stat, :ket, NULL, NULL)";
+            $stmt = $pdo->prepare($sql_insert);
+            $stmt->execute([':stat'=>$k_status, ':ket'=>$k_catatan, ':id'=>$k_id_siswa, ':tgl'=>$k_tanggal]);
+        }
+
+        // Redirect Sukses
+        echo "
+        <script>
+            alert('Berhasil! Data absensi telah diperbarui.');
+            window.location.href='index.php?page=pembimbing/rekap_kalender_siswa&id_siswa=$k_id_siswa';
+        </script>";
+        exit;
+
+    } catch (PDOException $e) {
+        // Redirect Gagal (Tampilkan Error)
+        // Kita gunakan json_encode agar pesan error aman dari karakter aneh (petik, enter)
+        $err_msg = json_encode("Gagal update database: " . $e->getMessage());
+        echo "
+        <script>
+            alert($err_msg);
+            window.history.back();
+        </script>";
+        exit;
+    }
+}
+// --- END LOGIKA KOREKSI ---
 
 if (!isset($_GET['id_siswa'])) {
     echo "<div class='alert alert-danger' role='alert'>Error: ID Siswa tidak ditemukan.</div>";
@@ -50,7 +102,7 @@ $data_absensi_bulan_ini = [];
 $summary = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alpha' => 0];
 
 try {
-    // [UPDATE] Fetch complete attendance details
+    // Fetch complete attendance details
     $sql_absen = "SELECT DAY(tanggal) as hari, tanggal, status, bukti_foto, latitude, longitude, jam_absen, keterangan 
                   FROM absensi 
                   WHERE id_siswa = :id_siswa 
@@ -74,11 +126,12 @@ try {
             'ket'    => $row['keterangan'],
             'tgl'    => $row['tanggal']
         ];
-
-        // Calculate Summary
-        if(isset($summary[$row['status']])) {
-            $summary[$row['status']]++;
-        }
+    }
+    
+    // Note: Summary calculation moved to loop for accuracy with "missing" days (optional, but better)
+    // For now keeping logic simple based on DB data for summary array init
+    foreach ($data_absensi_bulan_ini as $d) {
+        if(isset($summary[$d['status']])) $summary[$d['status']]++;
     }
 
 } catch (PDOException $e) {
@@ -112,17 +165,17 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
         aspect-ratio: 1 / 1; background-color: #fff; border-radius: 8px;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         position: relative; font-size: 0.9rem; font-weight: 500; color: #333;
-        border: 1px solid #f0f0f0; transition: transform 0.1s;
+        border: 1px solid #f0f0f0; transition: transform 0.1s; cursor: pointer; /* Pointer added */
     }
 
-    .day-cell.empty { background: transparent; border: none; }
+    .day-cell.empty { background: transparent; border: none; cursor: default; }
 
     /* Status Styling */
-    .day-cell.status-hadir { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; cursor: pointer; }
-    .day-cell.status-izin { background-color: #cfe2ff; color: #084298; border-color: #b6d4fe; cursor: pointer; }
-    .day-cell.status-sakit { background-color: #fff3cd; color: #664d03; border-color: #ffecb5; cursor: pointer; }
-    .day-cell.status-alpha { background-color: #f8d7da; color: #842029; border-color: #f5c6cb; cursor: pointer; }
-    .day-cell.status-libur { background-color: #f8f9fa; color: #adb5bd; }
+    .day-cell.status-hadir { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+    .day-cell.status-izin { background-color: #cfe2ff; color: #084298; border-color: #b6d4fe; }
+    .day-cell.status-sakit { background-color: #fff3cd; color: #664d03; border-color: #ffecb5; }
+    .day-cell.status-alpha { background-color: #f8d7da; color: #842029; border-color: #f5c6cb; }
+    .day-cell.status-libur { background-color: #f8f9fa; color: #adb5bd; cursor: default; }
     .day-cell.status-missing { background-color: #fff; border: 2px dashed #dc3545; color: #dc3545; }
 
     .day-cell.today { box-shadow: 0 0 0 2px #0d6efd; z-index: 2; font-weight: bold; }
@@ -130,7 +183,7 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
     .cell-status-text { font-size: 0.6rem; margin-top: 2px; font-weight: normal; display: none; }
     
     /* Hover Effect */
-    .day-cell:not(.empty):not(.status-libur):not(.status-missing):hover {
+    .day-cell:not(.empty):not(.status-libur):hover {
         transform: scale(1.05); z-index: 5; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
@@ -211,23 +264,35 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
                     if ($is_current_month && $hari_ke == $hari_ini) $cell_classes[] = 'today';
 
                     if (isset($data_absensi_bulan_ini[$hari_ke])) {
-                        // Data exists
+                        // KONDISI 1: Data Sudah Ada di DB
                         $data = $data_absensi_bulan_ini[$hari_ke];
                         $status = $data['status'];
                         $cell_classes[] = 'status-' . strtolower($status);
                         $status_label = $status;
 
-                        // [UPDATE] Encode data for JS click handler
                         $json_data = htmlspecialchars(json_encode($data), ENT_QUOTES, 'UTF-8');
                         $onclick_event = "onclick='showDetail($json_data)'";
 
                     } else {
-                        // Empty/Missing data logic
+                        // KONDISI 2: Data Kosong
                         if (in_array($hari_minggu_ini, $hari_kerja_perusahaan)) {
                             $is_within_period = ($tanggal_loop >= $pkl_start && $tanggal_loop <= $pkl_end);
                             if ($tanggal_loop < $tanggal_hari_ini && $is_within_period) {
+                                // [UPDATE] MISSING DAY / BELUM ABSEN
                                 $cell_classes[] = 'status-missing';
                                 $status_label = '!'; 
+                                
+                                // Buat data dummy agar bisa diklik untuk koreksi
+                                $dummy_data = [
+                                    'status' => 'Belum Absen',
+                                    'tgl' => $tanggal_loop,
+                                    'jam' => '-',
+                                    'ket' => 'Data belum masuk.',
+                                    'foto' => '',
+                                    'lat' => '', 'long' => ''
+                                ];
+                                $json_data = htmlspecialchars(json_encode($dummy_data), ENT_QUOTES, 'UTF-8');
+                                $onclick_event = "onclick='showDetail($json_data)'";
                             }
                         } else {
                             $cell_classes[] = 'status-libur';
@@ -250,7 +315,7 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
                 <span class="badge bg-primary bg-opacity-25 text-primary border border-primary">Izin</span>
                 <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Sakit</span>
                 <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Alpha</span>
-                <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary">Libur</span>
+                <span class="badge bg-white text-danger border border-danger border-dashed" style="border-style: dashed !important;">! (Belum Absen)</span>
             </div>
         </div>
     </div>
@@ -274,20 +339,70 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
                     <p id="noFotoText" class="text-muted small fst-italic mb-0" style="display: none;">Tidak ada bukti foto.</p>
                 </div>
 
-                <div class="d-grid">
+                <div class="d-grid gap-2">
                     <a id="btnMaps" href="#" target="_blank" class="btn btn-outline-primary rounded-pill btn-sm">
                         <i class="fas fa-map-marker-alt me-2"></i> Lihat Lokasi (Gmaps)
                     </a>
+                    
+                    <button type="button" id="btnKoreksi" class="btn btn-warning rounded-pill btn-sm text-dark fw-bold" onclick="openKoreksiModal()">
+                        <i class="fas fa-edit me-2"></i> Koreksi Absensi
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="modalKoreksi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h6 class="modal-title fw-bold text-dark"><i class="fas fa-pen-square me-2"></i>Koreksi Data</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="k_id_siswa" id="k_id_siswa" value="<?php echo $id_siswa; ?>">
+                    <input type="hidden" name="k_tanggal" id="k_tanggal">
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tanggal</label>
+                        <input type="text" id="k_tgl_display" class="form-control form-control-sm bg-light" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Ubah Status Menjadi</label>
+                        <select name="k_status" id="k_status" class="form-select form-select-sm" required>
+                            <option value="Hadir">Hadir</option>
+                            <option value="Izin">Izin</option>
+                            <option value="Sakit">Sakit</option>
+                            <option value="Alpha">Alpha</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Catatan Koreksi</label>
+                        <textarea name="k_catatan" id="k_catatan" class="form-control form-control-sm" rows="2" placeholder="Alasan koreksi..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer p-1">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="backToDetail()">Batal</button>
+                    <button type="submit" name="btn_simpan_koreksi" class="btn btn-sm btn-dark">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
-// Function to show modal detail
+// Global variable untuk menyimpan data yang sedang dibuka
+let currentAbsenData = null;
+
 function showDetail(data) {
     if (!data) return;
+    
+    // Simpan ke variable global
+    currentAbsenData = data;
 
     const modalEl = document.getElementById('modalDetailAbsen');
     const modal = new bootstrap.Modal(modalEl);
@@ -303,6 +418,7 @@ function showDetail(data) {
     if(data.status === 'Hadir') badge.classList.add('bg-success');
     else if(data.status === 'Izin') badge.classList.add('bg-primary');
     else if(data.status === 'Sakit') badge.classList.add('bg-warning', 'text-dark');
+    else if(data.status === 'Belum Absen') badge.classList.add('bg-danger', 'border', 'border-white');
     else badge.classList.add('bg-danger');
 
     // Set Info
@@ -328,13 +444,57 @@ function showDetail(data) {
         btnMaps.classList.remove('disabled', 'btn-secondary');
         btnMaps.classList.add('btn-outline-primary');
         btnMaps.innerHTML = '<i class="fas fa-map-marker-alt me-2"></i> Lihat Lokasi (Gmaps)';
+        btnMaps.style.display = 'block'; // Ensure visible
     } else {
         btnMaps.href = '#';
-        btnMaps.classList.remove('btn-outline-primary');
-        btnMaps.classList.add('disabled', 'btn-secondary');
-        btnMaps.innerHTML = '<i class="fas fa-map-slash me-2"></i> Lokasi Tidak Tersedia';
+        // Kalau belum absen (missing), tombol maps disembunyikan saja biar rapi
+        if(data.status === 'Belum Absen') {
+             btnMaps.style.display = 'none';
+        } else {
+            btnMaps.style.display = 'block';
+            btnMaps.classList.remove('btn-outline-primary');
+            btnMaps.classList.add('disabled', 'btn-secondary');
+            btnMaps.innerHTML = '<i class="fas fa-map-slash me-2"></i> Lokasi Tidak Tersedia';
+        }
     }
 
     modal.show();
+}
+
+// [BARU] Fungsi Buka Modal Koreksi
+function openKoreksiModal() {
+    if(!currentAbsenData) return;
+
+    // Tutup Modal Detail
+    const modalDetailEl = document.getElementById('modalDetailAbsen');
+    const modalDetail = bootstrap.Modal.getInstance(modalDetailEl);
+    modalDetail.hide();
+
+    // Isi Form
+    document.getElementById('k_tanggal').value = currentAbsenData.tgl;
+    document.getElementById('k_tgl_display').value = currentAbsenData.tgl;
+    
+    // Set default select option (Kalau 'Belum Absen', defaultnya Alpha)
+    let statusToSet = currentAbsenData.status;
+    if(statusToSet === 'Belum Absen') statusToSet = 'Alpha';
+    document.getElementById('k_status').value = statusToSet;
+    
+    // Isi catatan (ambil dari keterangan lama jika ada)
+    document.getElementById('k_catatan').value = currentAbsenData.ket || '';
+
+    // Buka Modal Koreksi
+    const modalKoreksiEl = document.getElementById('modalKoreksi');
+    const modalKoreksi = new bootstrap.Modal(modalKoreksiEl);
+    modalKoreksi.show();
+}
+
+// [BARU] Fungsi Kembali dari Koreksi ke Detail (Opsional)
+function backToDetail() {
+    const modalKoreksiEl = document.getElementById('modalKoreksi');
+    const modalKoreksi = bootstrap.Modal.getInstance(modalKoreksiEl);
+    modalKoreksi.hide();
+
+    // Panggil showDetail lagi dengan data yang sama
+    showDetail(currentAbsenData);
 }
 </script>
