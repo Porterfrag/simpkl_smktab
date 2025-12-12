@@ -2,6 +2,45 @@
 // --- 1. PHP LOGIC & SECURITY ---
 if ($_SESSION['role'] != 'admin') { die("Akses dilarang!"); }
 
+// Koneksi Database ($pdo) diasumsikan sudah ada
+// include 'config.php'; 
+
+// --- [FITUR BARU] LOGIKA SIMPAN KOREKSI (ADMIN) ---
+if (isset($_POST['btn_simpan_koreksi'])) {
+    $k_id_siswa = $_POST['k_id_siswa'];
+    $k_tanggal  = $_POST['k_tanggal'];
+    $k_status   = $_POST['k_status'];
+    $k_catatan  = $_POST['k_catatan'];
+
+    try {
+        // Cek apakah data sudah ada
+        $cek = $pdo->prepare("SELECT id_absensi FROM absensi WHERE id_siswa = ? AND tanggal = ?");
+        $cek->execute([$k_id_siswa, $k_tanggal]);
+        
+        if ($cek->rowCount() > 0) {
+            // UPDATE
+            $sql_update = "UPDATE absensi SET status = :stat, keterangan = :ket WHERE id_siswa = :id AND tanggal = :tgl";
+            $stmt = $pdo->prepare($sql_update);
+            $stmt->execute([':stat'=>$k_status, ':ket'=>$k_catatan, ':id'=>$k_id_siswa, ':tgl'=>$k_tanggal]);
+        } else {
+            // INSERT (Admin mengisi data kosong)
+            $sql_insert = "INSERT INTO absensi (id_siswa, tanggal, jam_absen, status, keterangan, latitude, longitude) 
+                           VALUES (:id, :tgl, NOW(), :stat, :ket, NULL, NULL)";
+            $stmt = $pdo->prepare($sql_insert);
+            $stmt->execute([':stat'=>$k_status, ':ket'=>$k_catatan, ':id'=>$k_id_siswa, ':tgl'=>$k_tanggal]);
+        }
+
+        echo "<script>alert('Berhasil! Data absensi siswa telah diperbarui.'); window.location.href='index.php?page=admin/rekap_absensi_kalender&id_siswa=$k_id_siswa';</script>";
+        exit;
+
+    } catch (PDOException $e) {
+        $err_msg = json_encode("Gagal update database: " . $e->getMessage());
+        echo "<script>alert($err_msg); window.history.back();</script>";
+        exit;
+    }
+}
+// --- END LOGIKA KOREKSI ---
+
 // Parameter Filter
 $id_siswa = isset($_GET['id_siswa']) ? $_GET['id_siswa'] : '';
 $bulan_pilihan = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
@@ -21,7 +60,6 @@ try {
 
     // B. Jika Siswa Dipilih, Ambil Data Detailnya
     if ($id_siswa) {
-        // 1. Ambil Info Siswa & Hari Kerja Perusahaan
         $sql_info = "SELECT s.nama_lengkap, p.hari_kerja 
                      FROM siswa s
                      LEFT JOIN perusahaan p ON s.id_perusahaan = p.id_perusahaan
@@ -37,22 +75,15 @@ try {
             }
         }
 
-        // 2. Ambil Data Absensi LENGKAP & Hitung Summary
-        // Fetch foto, lokasi, jam, keterangan
         $sql_absen = "SELECT DAY(tanggal) as hari, tanggal, status, bukti_foto, latitude, longitude, jam_absen, keterangan 
                       FROM absensi 
                       WHERE id_siswa = :id_siswa 
                         AND MONTH(tanggal) = :bulan 
                         AND YEAR(tanggal) = :tahun";
         $stmt_absen = $pdo->prepare($sql_absen);
-        $stmt_absen->execute([
-            ':id_siswa' => $id_siswa,
-            ':bulan' => $bulan_pilihan,
-            ':tahun' => $tahun_pilihan
-        ]);
+        $stmt_absen->execute([':id_siswa' => $id_siswa, ':bulan' => $bulan_pilihan, ':tahun' => $tahun_pilihan]);
         
         while ($row = $stmt_absen->fetch(PDO::FETCH_ASSOC)) {
-            // Simpan data lengkap untuk JS
             $data_absensi_bulan_ini[$row['hari']] = [
                 'status' => $row['status'],
                 'foto'   => $row['bukti_foto'],
@@ -62,11 +93,11 @@ try {
                 'ket'    => $row['keterangan'],
                 'tgl'    => $row['tanggal']
             ];
-
-            // Hitung Summary
-            if(isset($summary[$row['status']])) {
-                $summary[$row['status']]++;
-            }
+        }
+        
+        // Hitung Summary (Loop array agar sinkron)
+        foreach($data_absensi_bulan_ini as $d){
+            if(isset($summary[$d['status']])) $summary[$d['status']]++;
         }
     }
 
@@ -77,71 +108,33 @@ try {
 // Konfigurasi Kalender
 $nama_bulan_ini = date('F Y', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
 $jumlah_hari_di_bulan = date('t', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
-$hari_pertama_minggu = date('N', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan)); // 1 (Senin) - 7 (Minggu)
+$hari_pertama_minggu = date('N', mktime(0, 0, 0, $bulan_pilihan, 1, $tahun_pilihan));
 $hari_ini = date('d');
 $is_current_month = ($bulan_pilihan == date('m') && $tahun_pilihan == date('Y'));
 $tanggal_hari_ini = date('Y-m-d');
 
-// Setting Default
 $pkl_start = isset($SETTINGS['pkl_start_date']) ? $SETTINGS['pkl_start_date'] : '2020-01-01';
 $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '2030-12-31';
 ?>
 
 <style>
-    /* Mobile First Grid Calendar */
     .calendar-container { max-width: 100%; margin: 0 auto; }
-    
-    /* Summary Cards */
     .summary-card { background: #fff; border-radius: 12px; padding: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; border: 1px solid #eee; }
     .summary-count { font-size: 1.2rem; font-weight: 800; display: block; }
     .summary-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    /* The Grid */
     .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 600; font-size: 0.8rem; color: #6c757d; padding-bottom: 10px; }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-
-    .day-cell {
-        aspect-ratio: 1 / 1;
-        background-color: #fff;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #333;
-        border: 1px solid #f0f0f0;
-        transition: transform 0.1s;
-        cursor: default;
-    }
-
-    .day-cell.empty { background: transparent; border: none; }
-
-    /* Status Styling */
-    .day-cell.status-hadir { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; cursor: pointer; }
-    .day-cell.status-izin { background-color: #cfe2ff; color: #084298; border-color: #b6d4fe; cursor: pointer; }
-    .day-cell.status-sakit { background-color: #fff3cd; color: #664d03; border-color: #ffecb5; cursor: pointer; }
-    .day-cell.status-alpha { background-color: #f8d7da; color: #842029; border-color: #f5c6cb; cursor: pointer; }
-    .day-cell.status-libur { background-color: #f8f9fa; color: #adb5bd; }
-    
-    /* Auto Alpha Indicator */
+    .day-cell { aspect-ratio: 1 / 1; background-color: #fff; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.9rem; font-weight: 500; color: #333; border: 1px solid #f0f0f0; transition: transform 0.1s; cursor: pointer; }
+    .day-cell.empty { background: transparent; border: none; cursor: default; }
+    .day-cell.status-hadir { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+    .day-cell.status-izin { background-color: #cfe2ff; color: #084298; border-color: #b6d4fe; }
+    .day-cell.status-sakit { background-color: #fff3cd; color: #664d03; border-color: #ffecb5; }
+    .day-cell.status-alpha { background-color: #f8d7da; color: #842029; border-color: #f5c6cb; }
+    .day-cell.status-libur { background-color: #f8f9fa; color: #adb5bd; cursor: default; }
     .day-cell.status-missing { background-color: #fff; border: 2px dashed #dc3545; color: #dc3545; }
-
-    /* Current Day Indicator */
     .day-cell.today { box-shadow: 0 0 0 2px #0d6efd; z-index: 2; font-weight: bold; }
-
-    /* Status Label inside cell */
     .cell-status-text { font-size: 0.6rem; margin-top: 2px; font-weight: normal; display: none; }
-    
-    /* Hover Effect for clickable cells */
-    .day-cell:not(.empty):not(.status-libur):not(.status-missing):hover {
-        transform: scale(1.05);
-        z-index: 5;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
+    .day-cell:not(.empty):not(.status-libur):hover { transform: scale(1.05); z-index: 5; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     @media (min-width: 400px) { .cell-status-text { display: block; } }
     .filter-area { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
 </style>
@@ -154,8 +147,7 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
             <select id="siswaSelector" class="form-select select2" style="width: 100%;">
                 <option value="">-- Cari Siswa --</option>
                 <?php foreach ($siswa_list as $s): ?>
-                    <option value="<?php echo $s['id_siswa']; ?>" 
-                        <?php echo ($s['id_siswa'] == $id_siswa) ? 'selected' : ''; ?>>
+                    <option value="<?php echo $s['id_siswa']; ?>" <?php echo ($s['id_siswa'] == $id_siswa) ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($s['nama_lengkap']) . ' (' . htmlspecialchars($s['kelas']) . ')'; ?>
                     </option>
                 <?php endforeach; ?>
@@ -209,68 +201,56 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-body p-3">
             <div class="calendar-container">
-                <h6 class="text-center mb-3 fw-bold text-uppercase text-primary">
-                    <?php echo $nama_bulan_ini; ?>
-                </h6>
-
+                <h6 class="text-center mb-3 fw-bold text-uppercase text-primary"><?php echo $nama_bulan_ini; ?></h6>
                 <div class="calendar-header">
                     <div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div>
                 </div>
-
                 <div class="calendar-grid">
                     <?php
-                    // Empty cells before start of month
-                    for ($i = 1; $i < $hari_pertama_minggu; $i++) {
-                        echo '<div class="day-cell empty"></div>';
-                    }
+                    for ($i = 1; $i < $hari_pertama_minggu; $i++) echo '<div class="day-cell empty"></div>';
 
-                    // Date Loop
                     for ($hari_ke = 1; $hari_ke <= $jumlah_hari_di_bulan; $hari_ke++) {
                         $hari_minggu_ini = date('N', mktime(0, 0, 0, $bulan_pilihan, $hari_ke, $tahun_pilihan));
                         $tanggal_loop = "$tahun_pilihan-" . str_pad($bulan_pilihan, 2, '0', STR_PAD_LEFT) . "-" . str_pad($hari_ke, 2, '0', STR_PAD_LEFT);
                         
-                        // Determine Classes
                         $cell_classes = ['day-cell'];
                         $status_label = '';
                         $onclick_event = '';
 
-                        // Check is Today
-                        if ($is_current_month && $hari_ke == $hari_ini) {
-                            $cell_classes[] = 'today';
-                        }
+                        if ($is_current_month && $hari_ke == $hari_ini) $cell_classes[] = 'today';
 
-                        // Check Data Absensi
                         if (isset($data_absensi_bulan_ini[$hari_ke])) {
+                            // DATA ADA DI DATABASE
                             $data = $data_absensi_bulan_ini[$hari_ke];
                             $status = $data['status'];
-                            
                             $cell_classes[] = 'status-' . strtolower($status);
                             $status_label = $status;
-                            
-                            // Encode data hari ini ke JSON string
                             $json_data = htmlspecialchars(json_encode($data), ENT_QUOTES, 'UTF-8');
                             $onclick_event = "onclick='showDetail($json_data)'";
-
                         } else {
-                            // Logic for empty days
+                            // DATA KOSONG
                             if (in_array($hari_minggu_ini, $hari_kerja_perusahaan)) {
                                 $is_within_period = ($tanggal_loop >= $pkl_start && $tanggal_loop <= $pkl_end);
-                                
                                 if ($tanggal_loop < $tanggal_hari_ini && $is_within_period) {
-                                    $cell_classes[] = 'status-missing'; // Alpha Otomatis visual
+                                    // Status Missing / Belum Absen
+                                    $cell_classes[] = 'status-missing';
                                     $status_label = '!'; 
+                                    // Buat dummy data agar bisa diklik untuk koreksi
+                                    $dummy_data = [
+                                        'status' => 'Belum Absen', 'tgl' => $tanggal_loop,
+                                        'jam' => '-', 'ket' => 'Data belum masuk.',
+                                        'foto' => '', 'lat' => '', 'long' => ''
+                                    ];
+                                    $json_data = htmlspecialchars(json_encode($dummy_data), ENT_QUOTES, 'UTF-8');
+                                    $onclick_event = "onclick='showDetail($json_data)'";
                                 }
                             } else {
                                 $cell_classes[] = 'status-libur';
                             }
                         }
-
-                        // Render Cell
                         echo '<div class="' . implode(' ', $cell_classes) . '" ' . $onclick_event . '>';
                         echo '<span>' . $hari_ke . '</span>';
-                        if($status_label) {
-                            echo '<span class="cell-status-text">' . substr($status_label, 0, 3) . '</span>';
-                        }
+                        if($status_label) echo '<span class="cell-status-text">' . substr($status_label, 0, 3) . '</span>';
                         echo '</div>';
                     }
                     ?>
@@ -289,7 +269,6 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
             </div>
         </div>
     </div>
-
 <?php endif; ?>
 
 <div class="modal fade" id="modalDetailAbsen" tabindex="-1" aria-hidden="true">
@@ -301,33 +280,80 @@ $pkl_end   = isset($SETTINGS['pkl_end_date']) ? $SETTINGS['pkl_end_date'] : '203
             </div>
             <div class="modal-body text-center">
                 <h4 class="mb-3"><span id="modalStatusBadge" class="badge bg-secondary">Status</span></h4>
-                
                 <p class="mb-1 text-muted small"><i class="far fa-clock me-1"></i> Waktu: <span id="modalJam" class="fw-bold text-dark">-</span></p>
                 <p class="mb-3 text-secondary small fst-italic" id="modalKet"></p>
 
                 <div class="mb-3 bg-light rounded p-2 border d-flex justify-content-center">
-                    <img id="modalFoto" src="" class="img-fluid rounded shadow-sm" style="max-height: 300px; display: none;" alt="Bukti">
+                    <img id="modalFoto" src="" class="img-fluid rounded shadow-sm" style="max-height: 250px; display: none;" alt="Bukti">
                     <p id="noFotoText" class="text-muted small fst-italic mb-0" style="display: none;">Tidak ada bukti foto.</p>
                 </div>
 
-                <div class="d-grid">
-                    <a id="btnMaps" href="#" target="_blank" class="btn btn-outline-primary rounded-pill btn-sm">
-                        <i class="fas fa-map-marker-alt me-2"></i> Lihat Lokasi (Gmaps)
-                    </a>
+                <div id="mapContainer" style="display:none;" class="mb-3">
+                    <h6 class="fw-bold text-start small mb-2"><i class="fas fa-map-marker-alt me-1"></i> Lokasi:</h6>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <iframe id="mapFrame" src="" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                    </div>
+                </div>
+                <p id="noMapText" class="text-muted small fst-italic mb-3" style="display: none;">
+                    <i class="fas fa-map-slash me-1"></i> Lokasi tidak tersedia.
+                </p>
+
+                <div class="d-grid gap-2">
+                    <button type="button" id="btnKoreksi" class="btn btn-warning rounded-pill btn-sm text-dark fw-bold" onclick="openKoreksiModal()">
+                        <i class="fas fa-edit me-2"></i> Koreksi / Input Absensi
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="modalKoreksi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h6 class="modal-title fw-bold text-dark"><i class="fas fa-pen-square me-2"></i>Koreksi Data (Admin)</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="k_id_siswa" id="k_id_siswa" value="<?php echo $id_siswa; ?>">
+                    <input type="hidden" name="k_tanggal" id="k_tanggal">
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tanggal</label>
+                        <input type="text" id="k_tgl_display" class="form-control form-control-sm bg-light" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Status Kehadiran</label>
+                        <select name="k_status" id="k_status" class="form-select form-select-sm" required>
+                            <option value="Hadir">Hadir</option>
+                            <option value="Izin">Izin</option>
+                            <option value="Sakit">Sakit</option>
+                            <option value="Alpha">Alpha</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Catatan Admin</label>
+                        <textarea name="k_catatan" id="k_catatan" class="form-control form-control-sm" rows="2" placeholder="Alasan perubahan data..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer p-1">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="backToDetail()">Batal</button>
+                    <button type="submit" name="btn_simpan_koreksi" class="btn btn-sm btn-dark">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Inisialisasi Select2
     if (jQuery().select2) {
         $('.select2').select2({ theme: 'bootstrap-5', placeholder: "Cari Siswa...", allowClear: true });
     }
-
-    // Redirect saat siswa dipilih
     $('#siswaSelector').on('change', function() {
         var id_siswa = $(this).val();
         if (id_siswa) window.location.href = 'index.php?page=admin/rekap_absensi_kalender&id_siswa=' + id_siswa;
@@ -335,58 +361,86 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// FUNGSI GLOBAL: Tampilkan Modal Detail
+let currentAbsenData = null;
+
 function showDetail(data) {
     if (!data) return;
+    currentAbsenData = data;
 
-    // Elements
     const modalEl = document.getElementById('modalDetailAbsen');
     const modal = new bootstrap.Modal(modalEl);
     
-    // Set Tanggal Judul
+    // Set UI Teks
     const dateObj = new Date(data.tgl);
     document.getElementById('modalDateTitle').textContent = dateObj.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('modalJam').textContent = data.jam ? data.jam : '-';
+    document.getElementById('modalKet').textContent = data.ket ? '"' + data.ket + '"' : '';
 
-    // Set Status Badge Color
+    // Set Badge
     const badge = document.getElementById('modalStatusBadge');
     badge.textContent = data.status;
-    badge.className = 'badge'; // Reset classes
+    badge.className = 'badge'; 
     if(data.status === 'Hadir') badge.classList.add('bg-success');
     else if(data.status === 'Izin') badge.classList.add('bg-primary');
     else if(data.status === 'Sakit') badge.classList.add('bg-warning', 'text-dark');
+    else if(data.status === 'Belum Absen') badge.classList.add('bg-danger', 'border', 'border-white');
     else badge.classList.add('bg-danger');
-
-    // Set Info Lain
-    document.getElementById('modalJam').textContent = data.jam ? data.jam : '-';
-    document.getElementById('modalKet').textContent = data.ket ? '"' + data.ket + '"' : '';
 
     // Set Foto
     const img = document.getElementById('modalFoto');
     const noFoto = document.getElementById('noFotoText');
-    
     if (data.foto) {
         img.src = 'assets/uploads/' + data.foto;
-        img.style.display = 'block';
-        noFoto.style.display = 'none';
+        img.style.display = 'block'; noFoto.style.display = 'none';
     } else {
-        img.style.display = 'none';
-        noFoto.style.display = 'block';
+        img.style.display = 'none'; noFoto.style.display = 'block';
     }
 
-    // Set Maps Button
-    const btnMaps = document.getElementById('btnMaps');
+    // [BARU] LOGIKA MAPS EMBED
+    const mapContainer = document.getElementById('mapContainer');
+    const mapFrame = document.getElementById('mapFrame');
+    const noMapText = document.getElementById('noMapText');
+
     if (data.lat && data.long) {
-        btnMaps.href = `http://googleusercontent.com/maps.google.com/?q=${data.lat},${data.long}`;
-        btnMaps.classList.remove('disabled', 'btn-secondary');
-        btnMaps.classList.add('btn-outline-primary');
-        btnMaps.innerHTML = '<i class="fas fa-map-marker-alt me-2"></i> Lihat Lokasi (Gmaps)';
+        mapContainer.style.display = 'block';
+        noMapText.style.display = 'none';
+        // URL Map Embed Standard
+        const mapUrl = `http://googleusercontent.com/maps.google.com/maps?q=${data.lat},${data.long}&z=15&output=embed`;
+        mapFrame.src = mapUrl;
     } else {
-        btnMaps.href = '#';
-        btnMaps.classList.remove('btn-outline-primary');
-        btnMaps.classList.add('disabled', 'btn-secondary');
-        btnMaps.innerHTML = '<i class="fas fa-map-slash me-2"></i> Lokasi Tidak Tersedia';
+        mapContainer.style.display = 'none';
+        mapFrame.src = "";
+        noMapText.style.display = 'block';
     }
 
     modal.show();
+}
+
+// Reset iframe saat tutup modal
+document.getElementById('modalDetailAbsen').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('mapFrame').src = "";
+});
+
+// Buka Modal Koreksi
+function openKoreksiModal() {
+    if(!currentAbsenData) return;
+    const modalDetail = bootstrap.Modal.getInstance(document.getElementById('modalDetailAbsen'));
+    modalDetail.hide();
+
+    document.getElementById('k_tanggal').value = currentAbsenData.tgl;
+    document.getElementById('k_tgl_display').value = currentAbsenData.tgl;
+    
+    let statusToSet = currentAbsenData.status;
+    if(statusToSet === 'Belum Absen') statusToSet = 'Alpha';
+    document.getElementById('k_status').value = statusToSet;
+    document.getElementById('k_catatan').value = currentAbsenData.ket || '';
+
+    new bootstrap.Modal(document.getElementById('modalKoreksi')).show();
+}
+
+function backToDetail() {
+    const modalKoreksi = bootstrap.Modal.getInstance(document.getElementById('modalKoreksi'));
+    modalKoreksi.hide();
+    showDetail(currentAbsenData);
 }
 </script>
