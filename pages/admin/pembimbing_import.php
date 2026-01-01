@@ -48,7 +48,7 @@ if (isset($_POST['submit_import']) && $_SERVER["REQUEST_METHOD"] == "POST") {
                     $sql_user = "INSERT INTO users (username, password, role, id_ref) VALUES (?, ?, 'pembimbing', ?)";
                     $stmt_user = $pdo->prepare($sql_user);
                     
-                    while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                    while (($data = fgetcsv($handle, 1000, ";")) !== FALSE || ($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
                         $row_number++;
                         
                         // 1. Validasi Jumlah Kolom (Minimal 2: ID, Nama. Kolom 3 Telp Opsional)
