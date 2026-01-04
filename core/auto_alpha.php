@@ -4,7 +4,7 @@
 function kirim_wa($target, $pesan) {
     // --- KONFIGURASI TOKEN ---
     // Pastikan token ini benar
-    $token = "vm4YMHtKQTvRmsdXHZJy"; 
+    $token = "arjnMHqWLkFBAaN9bBoY"; 
 
     $curl = curl_init();
     curl_setopt_array($curl, array(
