@@ -181,7 +181,6 @@ if (in_array($page, $action_pages)) {
                             <li><a class="dropdown-item" href="index.php?page=admin/absensi_data">Data Absensi</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/rekap_nilai">Rekap Nilai</a></li>
-                            <li><a class="dropdown-item" href="index.php?page=admin/rekap_absensi_kalender">Rekap Absensi Kalender</a></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/rekap_absensi_harian">Rekap Absensi</a></li>
                             <li><a class="dropdown-item" href="index.php?page=admin/generate_alpha">Generate Alpha</a></li>
                         </ul>
