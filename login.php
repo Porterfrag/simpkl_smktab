@@ -137,7 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </button>
 
                     <a href="data_siswa.html" class="block text-center w-full mt-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg shadow-sm hover:shadow transition duration-300">
-                        Cek Data Siswa
+                        Cek NIS
                     </a>
 
                 </form>

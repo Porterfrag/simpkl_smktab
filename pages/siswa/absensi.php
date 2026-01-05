@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     locReady = false; 
                     gpsStat.innerHTML = `<i class="fas fa-times text-danger"></i> GPS Error`;
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
             );
         }
     }

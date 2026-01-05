@@ -23,9 +23,9 @@ ini_set('error_log', $log_folder . '/error_log.txt');
 
 // =========================================================
 $host = 'localhost';
-$db_name = 'db_pkl';
-$username = 'root';
-$password = ''; 
+$db_name = 'smkx8972_pkl';
+$username = 'smkx8972_pkl';
+$password = 'Curseyoubayle123_'; 
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db_name", $username, $password);
