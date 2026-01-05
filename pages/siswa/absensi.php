@@ -54,14 +54,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$sudah_absen) {
 ?>
 
 <style>
-    /* Style Tombol Pilihan */
     .status-btn-group .btn-check:checked + .btn {
         border-width: 2px;
-        background-color: #f8f9fa; /* Background saat aktif agak abu terang */
+        background-color: #f8f9fa;
         transform: translateY(-2px);
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    /* Warna Border & Teks saat aktif */
     .btn-check:checked + .btn-outline-success { border-color: #198754; color: #198754; background-color: #e8f5e9; }
     .btn-check:checked + .btn-outline-primary { border-color: #0d6efd; color: #0d6efd; background-color: #e7f1ff; }
     .btn-check:checked + .btn-outline-warning { border-color: #ffc107; color: #856404; background-color: #fff3cd; }
@@ -72,29 +70,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$sudah_absen) {
         background-color: white;
     }
 
-    /* Frame Kamera */
     .camera-frame {
         border-radius: 12px;
         overflow: hidden;
         background: #000;
         position: relative;
-        /* Rasio 4:3 standard webcam/hp */
         aspect-ratio: 4/3; 
         width: 100%;
-        max-width: 400px; /* Batasi lebar agar tidak raksasa di tablet */
-        margin: 0 auto; /* Tengah */
+        max-width: 400px;
+        margin: 0 auto;
     }
     
-    /* Video di-mirror (seperti bercermin) */
     video#webcam { 
         width: 100%; height: 100%; object-fit: cover; 
         transform: scaleX(-1); 
     }
     
-    /* Hasil foto NORMAL (biar tulisan terbaca) */
     img#photo { 
         width: 100%; height: 100%; object-fit: cover; 
-        /* Tidak di-transform scaleX(-1) agar hasil natural */
     }
     
     .gps-badge {
@@ -106,6 +99,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$sudah_absen) {
         display: inline-block;
         margin-bottom: 10px;
     }
+
+    /* Animasi sederhana saat muncul */
+    #keteranganSection { transition: all 0.3s ease; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -118,7 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$sudah_absen) {
 <?php if(!empty($pesan_sukses)): ?>
     <div class="alert alert-success rounded-3 shadow-sm border-0 d-flex align-items-center">
         <i class="fas fa-check-circle fa-2x me-3"></i>
-        <div><strong>Berhasil!</strong><br>Data absensi tersimpan.</div>
+        <div><strong>Berhasil!</strong><br><?php echo $pesan_sukses; ?></div>
     </div>
 <?php endif; ?>
 
@@ -183,17 +179,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$sudah_absen) {
                 <button type="button" id="startCam" class="btn btn-light border text-dark fw-bold rounded-pill btn-sm py-2">
                     <i class="fas fa-camera me-1"></i> Aktifkan Kamera
                 </button>
-                <button type="button" id="captureBtn" class="btn btn-primary fw-bold rounded-pill btn-sm py-2" disabled>
+                <button type="button" id="captureBtn" class="btn btn-primary fw-bold rounded-pill btn-sm py-2" style="display:none;">
                     <i class="fas fa-circle me-1"></i> Ambil Foto
                 </button>
             </div>
         </div>
     </div>
 
-    <div class="card shadow-sm border-0 mb-4 rounded-3">
+    <div class="card shadow-sm border-0 mb-4 rounded-3" id="keteranganSection" style="display:none;">
         <div class="card-body p-3">
             <p class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; margin-bottom: 5px;">Keterangan Tambahan</p>
-            <textarea name="keterangan" id="keterangan" rows="2" class="form-control bg-light border-0" placeholder="Isi jika Izin/Sakit..."></textarea>
+            <textarea name="keterangan" id="keterangan" rows="2" class="form-control bg-light border-0" placeholder="Contoh: Izin acara keluarga / Sakit demam..."></textarea>
         </div>
     </div>
 
@@ -217,28 +213,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const latInput = document.getElementById('latitude'); 
     const lonInput = document.getElementById('longitude'); 
     const camSection = document.getElementById('cameraSection');
+    const ketSection = document.getElementById('keteranganSection');
     const gpsStat = document.getElementById('gpsStatus');
     const radios = document.querySelectorAll('input[name="status_kehadiran"]');
     
     let stream = null;
     let locReady = false; 
 
-    // --- UI LOGIC ---
     function updateUI() {
         let status = document.querySelector('input[name="status_kehadiran"]:checked').value;
+        
         if (status === 'Hadir') {
+            // Tampilkan Kamera, Sembunyikan Keterangan
             camSection.style.display = 'block';
-            submitBtn.disabled = true; 
-            if (!stream) startCamBtn.click();
+            ketSection.style.display = 'none';
+            
+            // Logika tombol kirim: Jika status hadir, wajib foto dulu
+            if (!imgInput.value) {
+                submitBtn.disabled = true;
+            }
+            
+            // Auto start camera if not already active
+            if (!stream) {
+                // Memberi sedikit delay agar UI render selesai
+                setTimeout(() => { startCamBtn.click(); }, 100);
+            }
         } else {
+            // Sembunyikan Kamera, Tampilkan Keterangan
             camSection.style.display = 'none';
+            ketSection.style.display = 'block';
             submitBtn.disabled = false; 
+
+            // Matikan kamera untuk menghemat daya/privasi
             if (stream) {
                 stream.getTracks().forEach(t => t.stop());
                 stream = null;
+                video.srcObject = null;
+                startCamBtn.style.display = 'block';
+                captureBtn.style.display = 'none';
             }
         }
     }
+
     radios.forEach(r => r.addEventListener('change', updateUI));
 
     // --- GPS LOGIC ---
@@ -255,9 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 (err) => { 
                     locReady = false; 
-                    gpsStat.innerHTML = `<i class="fas fa-times text-danger"></i> Gagal`;
+                    gpsStat.innerHTML = `<i class="fas fa-times text-danger"></i> GPS Error`;
                 },
-                { enableHighAccuracy: false, timeout: 15000 }
+                { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
             );
         }
     }
@@ -266,14 +282,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CAMERA LOGIC ---
     startCamBtn.addEventListener('click', async () => {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
+            });
             video.srcObject = stream;
             photo.style.display = 'none';
-            video.style.display = 'block'; // Tampilkan video
+            video.style.display = 'block';
             startCamBtn.style.display = 'none';
             captureBtn.style.display = 'block';
             captureBtn.disabled = !locReady; 
-        } catch (e) { alert("Kamera error/ditolak."); }
+        } catch (e) { 
+            alert("Gagal mengakses kamera. Pastikan izin kamera diberikan."); 
+        }
     });
 
     captureBtn.addEventListener('click', () => {
@@ -281,31 +301,28 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         
-        // Gambar NORMAL ke canvas (TIDAK DI-MIRROR di data)
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0); 
         
-        const url = canvas.toDataURL('image/jpeg', 0.7);
+        const url = canvas.toDataURL('image/jpeg', 0.8);
         photo.src = url;
         
-        // Tampilkan foto (Normal)
         video.style.display = 'none';
         photo.style.display = 'block';
-        
         imgInput.value = url;
         
-        // Reset UI
         captureBtn.style.display = 'none';
         startCamBtn.innerHTML = "<i class='fas fa-redo me-1'></i> Foto Ulang";
         startCamBtn.style.display = 'block';
         
-        // Matikan stream
+        // Matikan stream setelah foto diambil
         stream.getTracks().forEach(t => t.stop());
         stream = null;
         
         submitBtn.disabled = false;
     });
 
+    // Jalankan pertama kali saat load
     updateUI();
 });
 </script>

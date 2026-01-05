@@ -158,7 +158,7 @@ $offset = ($halaman_aktif - 1) * $data_per_halaman;
             <i class="fas fa-arrow-left"></i>
         </a>
         <div class="flex-grow-1">
-            <small class="text-muted d-block">Validasi Jurnal & Nilai</small>
+            <small class="text-muted d-block">Validasi Jurnal</small>
             <h5 class="mb-0 fw-bold text-dark text-truncate"><?php echo htmlspecialchars($nama_siswa); ?></h5>
         </div>
     </div>
@@ -166,73 +166,11 @@ $offset = ($halaman_aktif - 1) * $data_per_halaman;
     <div class="row g-2 mb-4">
         <div class="col-6">
             <a href="cetak_jurnal.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center h-100 py-2">
-                <i class="fas fa-file-pdf me-2"></i> PDF Jurnal
-            </a>
-        </div>
-        <div class="col-6">
-            <a href="cetak_nilai.php?id_siswa=<?php echo $id_siswa; ?>" target="_blank" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center h-100 py-2">
-                <i class="fas fa-print me-2"></i> Rekap Nilai
+                <i class="fas fa-file-pdf me-2"></i> Cetak Jurnal
             </a>
         </div>
     </div>
 
-    <div class="card shadow-sm mb-4 border-0">
-        <div class="card-header bg-primary bg-gradient text-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold"><i class="fas fa-star me-2"></i>Input Nilai Akhir</h6>
-        </div>
-        <div class="card-body">
-            
-            <?php if(!empty($pesan_sukses_nilai)): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check me-1"></i> <?php echo $pesan_sukses_nilai; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-            <?php if(!empty($pesan_error_nilai)): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?php echo $pesan_error_nilai; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($is_grading_phase): ?>
-                <form action="index.php?page=pembimbing/validasi_jurnal_siswa&id_siswa=<?php echo $id_siswa; ?>" method="POST">
-                    <div class="row g-3">
-                        <div class="col-6 col-md-3">
-                            <label class="form-label small fw-bold text-muted">Disiplin</label>
-                            <input type="number" class="form-control text-center fw-bold" name="aspek_disiplin" min="0" max="100" placeholder="0" value="<?php echo htmlspecialchars($nilai['aspek_disiplin'] ?? 0); ?>" required>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label small fw-bold text-muted">Kompetensi</label>
-                            <input type="number" class="form-control text-center fw-bold" name="aspek_kompetensi" min="0" max="100" placeholder="0" value="<?php echo htmlspecialchars($nilai['aspek_kompetensi'] ?? 0); ?>" required>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label small fw-bold text-muted">Kerjasama</label>
-                            <input type="number" class="form-control text-center fw-bold" name="aspek_kerjasama" min="0" max="100" placeholder="0" value="<?php echo htmlspecialchars($nilai['aspek_kerjasama'] ?? 0); ?>" required>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label small fw-bold text-muted">Inisiatif</label>
-                            <input type="number" class="form-control text-center fw-bold" name="aspek_inisiatif" min="0" max="100" placeholder="0" value="<?php echo htmlspecialchars($nilai['aspek_inisiatif'] ?? 0); ?>" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-muted">Catatan Penilaian</label>
-                            <textarea class="form-control" name="catatan_penilaian" rows="3" placeholder="Berikan catatan evaluasi..."><?php echo htmlspecialchars($nilai['catatan_penilaian'] ?? ''); ?></textarea>
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" name="simpan_nilai" class="btn btn-success w-100 fw-bold py-2">
-                                <i class="fas fa-save me-1"></i> Simpan Nilai
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            <?php else: ?>
-                <div class="text-center py-3 text-muted">
-                    <i class="fas fa-lock fa-2x mb-2"></i>
-                    <p class="mb-0 small">Input nilai dibuka pada: <strong><?php echo date('d M Y', strtotime($grading_start_date)); ?></strong></p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
 
     <h6 class="mb-3 fw-bold text-secondary border-bottom pb-2">
         <i class="fas fa-book-reader me-2"></i>Riwayat Jurnal

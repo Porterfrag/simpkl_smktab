@@ -10,16 +10,16 @@ $role = $_SESSION['role'];
 $profil_data = []; 
 $username = "";
 
-// Dynamic Colors based on Role
-$theme_color = 'primary'; 
-$bg_gradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; // Default/Admin (Deep Purple)
+// Modern Color Palette
+$theme_color = '#6366f1'; // Indigo (Default)
+$gradient = 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)';
 
 if ($role == 'siswa') { 
-    $theme_color = 'primary';
-    $bg_gradient = 'linear-gradient(135deg, #0093E9 0%, #80D0C7 100%)'; // Siswa (Cyan/Blue)
+    $theme_color = '#0ea5e9'; // Sky
+    $gradient = 'linear-gradient(135deg, #0ea5e9 0%, #2dd4bf 100%)';
 } elseif ($role == 'pembimbing') { 
-    $theme_color = 'success'; 
-    $bg_gradient = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'; // Pembimbing (Green/Teal)
+    $theme_color = '#10b981'; // Emerald
+    $gradient = 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)';
 }
 
 try {
@@ -54,271 +54,347 @@ try {
         $profil_data = ['nama_lengkap' => 'Administrator'];
     }
 
-} catch (PDOException $e) { echo "Error: " . $e->getMessage(); }
+} catch (PDOException $e) { }
 
-// Display Name Helper
+// Display Name & Initials
 $display_name = $username;
 if ($role == 'siswa' && !empty($profil_data['nama_lengkap'])) $display_name = $profil_data['nama_lengkap'];
 elseif ($role == 'pembimbing' && !empty($profil_data['nama_guru'])) $display_name = $profil_data['nama_guru'];
 elseif ($role == 'admin') $display_name = "Administrator";
+
+$initials = strtoupper(substr($display_name, 0, 1));
+if (strpos($display_name, ' ') !== false) {
+    $parts = explode(' ', $display_name);
+    $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
+}
 ?>
 
 <style>
-    body {
-        background-color: #f0f2f5;
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    :root {
+        --profile-theme: <?php echo $theme_color; ?>;
+        --profile-gradient: <?php echo $gradient; ?>;
     }
-    
-    /* Card Container */
-    .profile-card {
-        background: white;
+
+    .profile-wrapper {
+        padding-bottom: 5rem;
+    }
+
+    /* Hero Section with Glassmorphism */
+    .profile-hero {
+        background: var(--profile-gradient);
         border-radius: 24px;
-        border: none;
+        padding: 3rem 1.5rem 5rem;
+        position: relative;
         overflow: hidden;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-        position: relative;
-        margin-bottom: 30px;
+        margin-bottom: -4rem;
+        z-index: 1;
     }
 
-    /* Header with Gradient */
-    .profile-cover {
-        height: 150px;
-        background: <?php echo $bg_gradient; ?>;
-        position: relative;
-    }
-
-    /* Avatar Floating over Header */
-    .profile-avatar {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        border: 5px solid white;
-        background: white;
+    .profile-hero::before {
+        content: '';
         position: absolute;
-        bottom: -60px;
-        left: 50%;
-        transform: translateX(-50%);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        top: -10%; right: -5%;
+        width: 15rem; height: 15rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .profile-avatar-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+    }
+
+    .profile-avatar-large {
+        width: 100px;
+        height: 100px;
+        background: white;
+        border-radius: 30px;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 10;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--profile-theme);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        border: 4px solid rgba(255,255,255,0.3);
     }
 
-    /* Text Styling */
-    .profile-info {
-        padding-top: 70px; /* Space for avatar */
-        text-align: center;
-        padding-bottom: 25px;
-    }
-    .user-name { font-size: 1.5rem; font-weight: 800; color: #2d3748; margin-bottom: 5px; }
-    .user-role { 
-        text-transform: uppercase; 
-        font-size: 0.75rem; 
-        font-weight: 700; 
-        letter-spacing: 1.5px;
-        color: #718096;
+    /* Content Card */
+    .profile-content-card {
+        background: #fff;
+        border-radius: 30px;
+        padding: 5rem 1.5rem 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        position: relative;
+        z-index: 2;
     }
 
-    /* Information Grids */
-    .info-grid {
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-badge {
+        display: inline-block;
+        padding: 0.35rem 1rem;
+        background: rgba(var(--profile-theme-rgb, 99, 102, 241), 0.1);
+        color: var(--profile-theme);
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Info Groups */
+    .info-section {
+        margin-bottom: 2rem;
+    }
+
+    .info-section-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        padding-left: 0.5rem;
+    }
+
+    .info-item {
+        background: #f8fafc;
+        border-radius: 20px;
+        padding: 1.25rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s;
+        border: 1px solid #f1f5f9;
+    }
+
+    .info-item:active {
+        transform: scale(0.98);
+    }
+
+    .info-icon {
+        width: 45px;
+        height: 45px;
+        background: #fff;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: var(--profile-theme);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+
+    .info-label {
+        font-size: 0.7rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 0.1rem;
+        display: block;
+    }
+
+    .info-value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #334155;
+        line-height: 1.2;
+    }
+
+    /* WhatsApp Button Fix */
+    .btn-wa-sm {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: 50% !important;
+        padding: 0 !important;
+    }
+
+    /* Floating Quick Actions */
+    .action-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        padding: 0 20px 25px 20px;
+        gap: 1rem;
+        margin-top: 1rem;
     }
-    
-    /* Individual Data Box */
-    .data-box {
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 20px 15px;
-        text-align: center;
-        border: 1px solid #edf2f7;
-    }
-    .data-box i { font-size: 1.5rem; margin-bottom: 10px; opacity: 0.8; }
-    .data-label { font-size: 0.75rem; color: #a0aec0; font-weight: 600; text-transform: uppercase; display: block; }
-    .data-value { font-size: 1rem; color: #2d3748; font-weight: 700; line-height: 1.2; margin-top: 5px; }
 
-    /* Wide Box (Full Width) Configuration */
-    .data-box.wide { 
-        grid-column: span 2; 
-        display: flex; 
-        align-items: center; 
-        justify-content: space-between; /* Pushes content to edges */
-        text-align: left; 
-        padding: 20px;
-    }
-    .data-box.wide i.main-icon { 
-        margin-bottom: 0; 
-        margin-right: 15px; 
-        font-size: 2rem; 
-    }
-    .data-box.wide .content-left {
-        display: flex;
-        align-items: center;
-        flex-grow: 1; /* Takes up available space */
-    }
-    
-    /* Action Buttons Area */
-    .action-area {
-        background: #fafbfc;
-        padding: 20px;
-        border-top: 1px solid #edf2f7;
-    }
-    .btn-custom-outline {
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        color: #4a5568;
-        font-weight: 600;
-        padding: 10px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    .btn-profile-action {
+        padding: 1rem;
+        border-radius: 18px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-align: center;
         text-decoration: none;
-    }
-    .btn-custom-outline:hover { background: #edf2f7; color: #2d3748; }
-    
-    .btn-custom-danger {
-        background: #fff5f5;
-        border: 2px solid #fed7d7;
-        color: #c53030;
-        border-radius: 12px;
-        font-weight: 600;
-        padding: 10px;
-        width: 100%;
+        transition: all 0.2s;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
-        text-decoration: none;
+        justify-content: center;
     }
-    .btn-custom-danger:hover { background: #ffe3e3; }
+
+    .btn-profile-secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .btn-profile-danger {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+
+    .btn-profile-action i {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 576px) {
+        .profile-content-card {
+            margin-left: -1rem;
+            margin-right: -1rem;
+            border-radius: 30px 30px 0 0;
+        }
+    }
 </style>
 
-<div class="row justify-content-center">
-    <div class="col-lg-5 col-md-8 col-sm-12">
-        
-        <div class="profile-card">
-            <div class="profile-cover">
-                <div class="profile-avatar">
-                    <i class="fas fa-user fa-4x text-<?php echo $theme_color; ?>"></i>
+<div class="profile-wrapper">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-8">
+            
+            <!-- Hero Header -->
+            <div class="profile-hero shadow">
+                <div class="profile-avatar-container">
+                    <div class="profile-avatar-large">
+                        <?php echo $initials; ?>
+                    </div>
                 </div>
             </div>
 
-            <div class="profile-info">
-                <h2 class="user-name"><?php echo htmlspecialchars($display_name); ?></h2>
-                <div class="user-role"><?php echo ucfirst($role); ?></div>
-                
-                <?php if ($role == 'siswa'): ?>
-                    <div class="mt-2 badge bg-light text-dark border px-3 py-2 rounded-pill">
-                        <?php echo htmlspecialchars($profil_data['kelas'] . " • " . $profil_data['jurusan']); ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <?php if ($role == 'siswa'): ?>
-            <div class="info-grid">
-                
-                <div class="data-box">
-                    <i class="fas fa-id-card text-primary"></i>
-                    <span class="data-label">NIS</span>
-                    <div class="data-value"><?php echo htmlspecialchars($profil_data['nis']); ?></div>
+            <!-- Content -->
+            <div class="profile-content-card text-center">
+                <h2 class="profile-name"><?php echo htmlspecialchars($display_name); ?></h2>
+                <div class="profile-badge">
+                    <i class="fas fa-shield-alt me-1"></i> <?php echo ucfirst($role); ?>
                 </div>
 
-                <div class="data-box">
-                    <i class="fas fa-user-circle text-info"></i>
-                    <span class="data-label">Username</span>
-                    <div class="data-value"><?php echo htmlspecialchars($username); ?></div>
-                </div>
-
-                <div class="data-box wide">
-                    <div class="content-left">
-                        <i class="fas fa-building text-warning main-icon"></i>
+                <!-- Account Info -->
+                <div class="info-section text-start">
+                    <h6 class="info-section-title">Informasi Akun</h6>
+                    
+                    <div class="info-item">
+                        <div class="info-icon"><i class="fas fa-at"></i></div>
                         <div>
-                            <span class="data-label">Tempat Magang</span>
-                            <?php if (!empty($profil_data['nama_perusahaan'])): ?>
-                                <div class="data-value"><?php echo htmlspecialchars($profil_data['nama_perusahaan']); ?></div>
-                                <small class="text-muted d-block mt-1" style="font-size: 11px; line-height: 1.2;">
-                                    <?php echo htmlspecialchars($profil_data['alamat_perusahaan']); ?>
-                                </small>
-                            <?php else: ?>
-                                <div class="text-danger fw-bold small">Belum Penempatan</div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="data-box wide">
-                    <div class="content-left">
-                        <i class="fas fa-chalkboard-teacher text-success main-icon"></i>
-                        <div>
-                            <span class="data-label">Pembimbing</span>
-                            <?php if (!empty($profil_data['nama_guru'])): ?>
-                                <div class="data-value"><?php echo htmlspecialchars($profil_data['nama_guru']); ?></div>
-                            <?php else: ?>
-                                <div class="text-danger fw-bold small">Belum Ditentukan</div>
-                            <?php endif; ?>
+                            <span class="info-label">Username</span>
+                            <span class="info-value"><?php echo htmlspecialchars($username); ?></span>
                         </div>
                     </div>
 
-                    <?php if (!empty($profil_data['nama_guru']) && !empty($profil_data['telp_guru'])): ?>
-                        <div class="ms-2">
-                            <a href="https://wa.me/<?php echo preg_replace('/^0/', '62', preg_replace('/[^0-9]/', '', $profil_data['telp_guru'])); ?>" 
-                               target="_blank" 
-                               class="btn btn-success rounded-pill d-flex align-items-center shadow-sm px-3 py-2">
-                                <i class="fab fa-whatsapp fa-lg me-1 mt-2"></i> Chat
-                            </a>
+                    <?php if ($role == 'siswa'): ?>
+                        <div class="info-item">
+                            <div class="info-icon"><i class="fas fa-id-card"></i></div>
+                            <div>
+                                <span class="info-label">Nomor Induk Siswa</span>
+                                <span class="info-value"><?php echo htmlspecialchars($profil_data['nis']); ?></span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon"><i class="fas fa-graduation-cap"></i></div>
+                            <div>
+                                <span class="info-label">Kelas & Jurusan</span>
+                                <span class="info-value"><?php echo htmlspecialchars($profil_data['kelas'] . " - " . $profil_data['jurusan']); ?></span>
+                            </div>
+                        </div>
+                    <?php elseif ($role == 'pembimbing'): ?>
+                        <div class="info-item">
+                            <div class="info-icon"><i class="fas fa-id-badge"></i></div>
+                            <div>
+                                <span class="info-label">NIP</span>
+                                <span class="info-value"><?php echo htmlspecialchars($profil_data['nip'] ?? '-'); ?></span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon"><i class="fas fa-phone"></i></div>
+                            <div>
+                                <span class="info-label">Kontak</span>
+                                <span class="info-value"><?php echo htmlspecialchars($profil_data['no_telp'] ?? '-'); ?></span>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
 
-            </div>
-            <?php endif; ?>
+                <!-- Placement / Stats -->
+                <?php if ($role == 'siswa'): ?>
+                    <div class="info-section text-start">
+                        <h6 class="info-section-title">Status Magang</h6>
+                        
+                        <div class="info-item">
+                            <div class="info-icon"><i class="fas fa-building"></i></div>
+                            <div class="flex-grow-1">
+                                <span class="info-label">Tempat Magang</span>
+                                <span class="info-value <?php echo empty($profil_data['nama_perusahaan']) ? 'text-danger' : ''; ?>">
+                                    <?php echo htmlspecialchars($profil_data['nama_perusahaan'] ?? 'Belum Penempatan'); ?>
+                                </span>
+                            </div>
+                        </div>
 
-
-            <?php if ($role == 'pembimbing'): ?>
-            <div class="info-grid">
-                <div class="data-box">
-                    <i class="fas fa-user-graduate text-primary"></i>
-                    <span class="data-label">Siswa</span>
-                    <div class="data-value fs-3"><?php echo $profil_data['total_bimbingan']; ?></div>
-                </div>
-
-                <div class="data-box">
-                    <i class="fas fa-industry text-warning"></i>
-                    <span class="data-label">DUDI</span>
-                    <div class="data-value fs-3"><?php echo $profil_data['total_perusahaan']; ?></div>
-                </div>
-
-                <div class="data-box wide">
-                    <div class="content-left">
-                        <i class="fas fa-id-badge text-secondary main-icon"></i>
-                        <div>
-                            <span class="data-label">Nomor Induk Pegawai</span>
-                            <div class="data-value"><?php echo htmlspecialchars($profil_data['nip']); ?></div>
+                        <div class="info-item">
+                            <div class="info-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                            <div class="flex-grow-1">
+                                <span class="info-label">Guru Pembimbing</span>
+                                <span class="info-value <?php echo empty($profil_data['nama_guru']) ? 'text-danger' : ''; ?>">
+                                    <?php echo htmlspecialchars($profil_data['nama_guru'] ?? 'Belum Ditentukan'); ?>
+                                </span>
+                            </div>
+                            <?php if (!empty($profil_data['telp_guru'])): ?>
+                                <a href="https://wa.me/<?php echo preg_replace('/^0/', '62', preg_replace('/[^0-9]/', '', $profil_data['telp_guru'])); ?>" 
+                                   target="_blank" class="btn btn-success btn-wa-sm ms-2">
+                                    <i class="fab fa-whatsapp fs-5"></i>
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
-                </div>
-            </div>
-            <?php endif; ?>
-
-
-            <div class="action-area">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <a href="index.php?page=ganti_password" class="btn btn-custom-outline">
-                            <i class="fas fa-key me-2"></i> Ganti Password
-                        </a>
+                <?php elseif ($role == 'pembimbing'): ?>
+                    <div class="info-section text-start">
+                        <h6 class="info-section-title">Statistik Bimbingan</h6>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="info-item flex-column text-center align-items-center">
+                                    <span class="info-label">Total Siswa</span>
+                                    <span class="info-value fs-4"><?php echo $profil_data['total_bimbingan']; ?></span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="info-item flex-column text-center align-items-center">
+                                    <span class="info-label">Total DUDI</span>
+                                    <span class="info-value fs-4"><?php echo $profil_data['total_perusahaan']; ?></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <a href="logout.php" class="btn btn-custom-danger">
-                            <i class="fas fa-sign-out-alt me-2"></i> Logout
-                        </a>
-                    </div>
-                </div>
-            </div>
+                <?php endif; ?>
 
+                <!-- Quick Actions -->
+                <div class="action-grid">
+                    <a href="index.php?page=ganti_password" class="btn-profile-action btn-profile-secondary">
+                        <i class="fas fa-key"></i> Ganti Password
+                    </a>
+                    <a href="logout.php" class="btn-profile-action btn-profile-danger" onclick="return confirm('Yakin ingin logout?')">
+                        <i class="fas fa-sign-out-alt"></i> Keluar
+                    </a>
+                </div>
+
+            </div>
         </div>
     </div>
 </div>

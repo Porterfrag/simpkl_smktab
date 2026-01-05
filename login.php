@@ -86,7 +86,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <style>
         body { 
             font-family: 'Inter', sans-serif;
-            /* --- NEW: Background Pattern --- */
             background-color: #f5f7fa; 
             background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
             background-size: 24px 24px;
@@ -130,11 +129,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <input id="remember-me" name="remember" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                             <span class="ml-2 text-sm text-gray-600">Ingat Saya</span>
                         </label>
-                        </div>
+                    </div>
                     
                     <button type="submit" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-0.5">
                         Masuk Aplikasi
                     </button>
+
+                    <a href="data_siswa.html" class="block text-center w-full mt-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg shadow-sm hover:shadow transition duration-300">
+                        Cek NIS
+                    </a>
+
                 </form>
                 
                 <p class="text-center text-gray-400 text-xs mt-8">&copy; <?php echo date("Y"); ?> SMKN 1 Sungai Tabuk</p>

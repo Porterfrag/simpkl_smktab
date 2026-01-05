@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cari NIS Mobile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* Hilangkan scrollbar default agar lebih bersih di mobile */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<a href="login.php" class="fixed bottom-6 right-6 bg-white text-red-600 p-4 rounded-full shadow-2xl border border-gray-100 z-50 flex items-center justify-center active:scale-90 transition-transform">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+    </svg>
+    <span class="ml-2 font-bold text-sm">Kembali</span>
+</a>
+<body class="bg-gray-100 text-gray-800 min-h-screen pb-20">
+
+    <div class="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200 pb-2">
+        <div class="bg-indigo-600 px-5 pt-6 pb-8 rounded-b-3xl absolute w-full top-0 left-0 -z-10 h-32"></div>
+        
+        <div class="max-w-md mx-auto px-4 pt-4">
+            <h1 class="text-white text-xl font-bold mb-1 ml-1">Cari Data Siswa</h1>
+            <p class="text-indigo-200 text-xs mb-4 ml-1">Ketik nama untuk memunculkan kartu siswa</p>
+            
+            <div class="relative shadow-lg rounded-xl bg-white">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="text" id="searchInput" 
+                    class="block w-full pl-11 pr-4 py-4 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-lg" 
+                    placeholder="Nama / NIS..." autocomplete="off" onkeyup="filterData()">
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto px-4 mt-4">
+        
+        <div id="cardList" class="space-y-3">
+            </div>
+
+        <div id="instructionMessage" class="flex flex-col items-center justify-center mt-20 text-gray-400 text-center px-6">
+            <div class="bg-white p-4 rounded-full shadow-sm mb-4">
+                <svg class="w-10 h-10 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-gray-600 font-semibold text-lg">Siapa yang dicari?</h3>
+            <p class="text-sm mt-1">Ketik nama siswa atau NIS di kolom pencarian atas.</p>
+        </div>
+
+        <div id="notFoundMessage" class="hidden flex flex-col items-center justify-center mt-20 text-gray-400 text-center">
+            <p class="text-gray-500 font-medium">Tidak ditemukan 😔</p>
+            <p class="text-xs mt-1">Coba kata kunci lain</p>
+        </div>
+
+        <div id="counterBadge" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-1.5 rounded-full text-xs shadow-lg opacity-90 backdrop-blur-sm z-40">
+            Ditemukan: <span id="count" class="font-bold text-yellow-300">0</span>
+        </div>
+
+    </div>
+
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 -translate-y-20 bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl transition-all duration-300 z-[60] flex items-center gap-2 text-sm font-semibold opacity-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span>NIS Disalin!</span>
+    </div>
+
+    <script>
+        // DATA SISWA (Paste data JSON yang sama di sini)
+        const students = [
+            {nis: "242087", nama: "Arfina", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242088", nama: "Diana", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242089", nama: "Ely Sapitri", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242090", nama: "Hapizah", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242091", nama: "Hayatunnisa", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242092", nama: "Inayah Herawati", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242093", nama: "Ismi Rahmah", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242094", nama: "Isnawati", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242095", nama: "Jihan", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242096", nama: "Miftahul Husna", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242097", nama: "Mutia Bella", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242098", nama: "Nabilla Salsabilla", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242099", nama: "Norjannah", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242100", nama: "Novy Juwiyanti", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242101", nama: "Nur Tazkiah", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242102", nama: "Nurlaila Ramadhani", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242103", nama: "Nurlaili", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242104", nama: "Putri Dwi Ningtyas", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242105", nama: "Putri Rahman Dira", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242106", nama: "Rizky Amelia", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242107", nama: "Rohadatul Ais", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242108", nama: "Salsa Aulia", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242109", nama: "Salsabila Dewanti", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242110", nama: "Sania Nur Adilla", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242111", nama: "Sari", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242112", nama: "Sendy Amanda", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242113", nama: "Siti Iktima", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242114", nama: "Siti Khadijah", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242115", nama: "Siti Rahmah", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242116", nama: "Syifa Aidini", jurusan: "DPB", kelas: "XI DPB"},
+            {nis: "242021", nama: "Afifah Humaira Zahra", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242022", nama: "Aliana", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242023", nama: "Dewi Fauziah Aprilia", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242024", nama: "Fitriah", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242025", nama: "Hidayatul Aula", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242026", nama: "Jainuddin", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242027", nama: "Jamilah", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242028", nama: "Lestari", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242029", nama: "M. Rifky Isra Hidayatullah", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242030", nama: "M. Rifqi Nafarin", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242031", nama: "Mariati", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242032", nama: "Maulida", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242033", nama: "Meldawati", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242034", nama: "Muhammad Adrian", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242035", nama: "Muhammad Cokro Basworo", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242036", nama: "Muhammad Difa", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242037", nama: "Nabila Azzahra", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242038", nama: "Nadia", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242039", nama: "Nayna Aulia", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242040", nama: "Noorliana", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242041", nama: "Nor Alvina Dewi", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242042", nama: "Norfalah", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242043", nama: "Nortiara", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242044", nama: "Novi", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242045", nama: "Nur Azqia", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242046", nama: "Raisya Marlina", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242047", nama: "Riena Bulqis", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242048", nama: "Rizki Amelia", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242049", nama: "Siti Aisyah", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242050", nama: "Siti Julaiha", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242051", nama: "Siti Munawarrah", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242052", nama: "Tiara Sarqa Liha", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242053", nama: "Viya", jurusan: "TKJ", kelas: "XI TKJ A"},
+            {nis: "242054", nama: "Ahmad Abdul Ghofur", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242055", nama: "Ahmad Fahriani", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242056", nama: "Ahmad Zain Rifani", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242057", nama: "Aminah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242058", nama: "Arbaiyah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242060", nama: "Gita Yuliani", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242061", nama: "Hirma", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242062", nama: "Husna", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242063", nama: "Isyabella", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242064", nama: "Jum'atiah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242065", nama: "Jumiati", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242066", nama: "Khoirunnida", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242067", nama: "Laila Puteri", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242068", nama: "Lutpiya", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242069", nama: "M. Dail Pratama", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242070", nama: "Magfirah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242071", nama: "Meta Delvia", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242072", nama: "Muhammad Royan Naufal", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242073", nama: "Nadyah Nasyifa", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242074", nama: "Nor Hikmah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242075", nama: "Novi Arini", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242076", nama: "Nur Munaa", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242077", nama: "Raysa Kamila", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242078", nama: "Rizky Fadilah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242079", nama: "Romina", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242080", nama: "Sazkiya Maulina 'abdah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242081", nama: "Siti A'isyaturridho", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242082", nama: "Siti Maulida", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242083", nama: "Sumiati", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242084", nama: "Syiddatul Muhibbah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242085", nama: "Syifa Indah", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "242086", nama: "Yurhami", jurusan: "TKJ", kelas: "XI TKJ B"},
+            {nis: "241913", nama: "A. Gazali", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241914", nama: "Ahmad Faisal", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241915", nama: "Akhmad Firmansyah", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241916", nama: "Aspihani", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241917", nama: "Erfan", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241919", nama: "Haidir Rahman", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241920", nama: "Iqbal Subakti", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241922", nama: "M. Jumri", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241923", nama: "M. Nirwan Darmawan", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241924", nama: "M. Yudi", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241925", nama: "Muhammad Aldi Maulana", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241926", nama: "Muhammad Basyir", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241927", nama: "Muhammad Fauzan", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241929", nama: "Muhammad Maulana Yusuf", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241930", nama: "Muhammad Raihan", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241931", nama: "Muhammad Rizal Alfian", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241932", nama: "Muhammad Rizky Anwari", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241933", nama: "Muhammad Rofi'i", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241934", nama: "Muhammad Septyan Ramadhan", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241935", nama: "Muhammad Suhairi", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241936", nama: "Muhammad Syahrianor", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241937", nama: "Muhammad Wildan", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241938", nama: "Nafarin", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241939", nama: "Noval Saputra", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241940", nama: "Rizky Saputra", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241942", nama: "Surya Gilang Adirangga", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241943", nama: "Untung Agustian", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241944", nama: "Zildan Rizki", jurusan: "TKR", kelas: "XI TKR A"},
+            {nis: "241945", nama: "Ahmad Danni Saputra", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241946", nama: "Ahmad Nabil Mustofa", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241947", nama: "Ahmad Rifa'i", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241948", nama: "Alfiannor", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241949", nama: "Aliman Al Irsyadi", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241950", nama: "Budi Nur Cahyo", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241951", nama: "Hasan", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241952", nama: "Imamnur", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241953", nama: "Latifatuz Zahra", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241954", nama: "M. Bayu Saputra", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241955", nama: "M. Fadlan", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241956", nama: "Muhammad Adli Akbar", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241957", nama: "Muhammad Adzril", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241958", nama: "Muhammad Fikri", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "252341", nama: "Muhammad Rado", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241960", nama: "Muhammad Rasid", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241961", nama: "Muhammad Ridho", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241962", nama: "Muhammad Riswan", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241963", nama: "Muhammad Rizki Ambo", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241964", nama: "Muhammad Rizky Fauzi Saputra", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241965", nama: "Muhammad Syah Radjasa Aji Nata Legawa", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241966", nama: "Muhammad Zikri Syailillah", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241967", nama: "Muslih Dzuu Fadlin", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241968", nama: "Rendi Ardiansyah", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241969", nama: "Risky Ramadhan Saputra", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241970", nama: "Rizki Ramadhan", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241971", nama: "Siti Kamalina", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241972", nama: "Sukma Maulana", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241973", nama: "Tahmidillah", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241974", nama: "Vicky Padilah", jurusan: "TKR", kelas: "XI TKR B"},
+            {nis: "241975", nama: "Abdurrahman", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241976", nama: "Ahmad Aditia Rahman", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241977", nama: "Ahmad Nur Fahri", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241978", nama: "Akhmad Syaifulah", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241979", nama: "Hadriani", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241980", nama: "Hayunauzi", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241981", nama: "Helman", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241983", nama: "M. Majedil Fahmi", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241984", nama: "M. Untung Arfisamman", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241985", nama: "Muhammad Amin", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241986", nama: "Muhammad Haikal", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241987", nama: "Muhammad Jairullah", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241988", nama: "Muhammad Noor", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241989", nama: "Muhammad Noval", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241990", nama: "Muhammad Reyhan", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241991", nama: "Muhammad Yasman", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241993", nama: "Muzaki", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241994", nama: "Raditya Nur Alam", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241995", nama: "Rahmadi", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241996", nama: "Ray Mona Santi", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241997", nama: "Riski Ramadhan", jurusan: "TSM", kelas: "XI TSM A"},
+            {nis: "241998", nama: "Aan Ahdad", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "241999", nama: "Abdul Hadi", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242000", nama: "Ahmad Wafi", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242002", nama: "Boby", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242003", nama: "Criss Abi Aristio", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242004", nama: "Fauji", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242005", nama: "Irvan Budiman", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242006", nama: "M. Erlangga", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242007", nama: "Maulana Qamarudin", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242008", nama: "Maulana Rahman", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242010", nama: "Muhammad Alfiannoor", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242012", nama: "Muhammad Naufal", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242013", nama: "Muhammad Noval Ispilah", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242014", nama: "Muhammad Ramadani", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242015", nama: "Muhammad Yasir Koban", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242016", nama: "Muhammad Zaky", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242017", nama: "Nur Hadi", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242018", nama: "Rahmat Setyio Nugroho", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242019", nama: "William Fasha", jurusan: "TSM", kelas: "XI TSM B"},
+            {nis: "242020", nama: "Yahdi Hasani", jurusan: "TSM", kelas: "XI TSM B"}
+        ];
+
+        const cardList = document.getElementById('cardList');
+        const searchInput = document.getElementById('searchInput');
+        const countSpan = document.getElementById('count');
+        const counterBadge = document.getElementById('counterBadge');
+        const toast = document.getElementById('toast');
+        const instructionMsg = document.getElementById('instructionMessage');
+        const notFoundMsg = document.getElementById('notFoundMessage');
+
+        // Fungsi Render Kartu
+        function renderCards(data) {
+            cardList.innerHTML = '';
+            
+            data.forEach(student => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between animate-[fadeIn_0.3s_ease-out]";
+                
+                card.innerHTML = `
+                    <div class="flex-1 min-w-0 pr-4">
+                        <h3 class="text-gray-900 font-bold text-lg leading-tight truncate mb-1">${student.nama}</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="font-mono text-gray-500 text-sm bg-gray-50 px-2 py-0.5 rounded border border-gray-200">${student.nis}</span>
+                        </div>
+                        <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            ${student.kelas}
+                        </div>
+                    </div>
+                    
+                    <button onclick="copyToClipboard('${student.nis}', this)" 
+                        class="flex-shrink-0 w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-100 active:scale-95 transition-all shadow-sm border border-indigo-100 group">
+                        <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    </button>
+                `;
+                cardList.appendChild(card);
+            });
+            
+            countSpan.innerText = data.length;
+        }
+
+        // Logic Filter
+        function filterData() {
+            const query = searchInput.value.toLowerCase().trim();
+            
+            if (query === "") {
+                cardList.innerHTML = '';
+                instructionMsg.classList.remove('hidden');
+                notFoundMsg.classList.add('hidden');
+                counterBadge.classList.add('hidden');
+                return;
+            }
+
+            instructionMsg.classList.add('hidden');
+
+            const filtered = students.filter(s => 
+                s.nama.toLowerCase().includes(query) || 
+                s.nis.includes(query) ||
+                s.kelas.toLowerCase().includes(query)
+            );
+
+            if(filtered.length === 0) {
+                cardList.innerHTML = '';
+                notFoundMsg.classList.remove('hidden');
+                counterBadge.classList.add('hidden');
+            } else {
+                notFoundMsg.classList.add('hidden');
+                counterBadge.classList.remove('hidden');
+                renderCards(filtered);
+            }
+        }
+
+        // Logic Copy
+        function copyToClipboard(text, btnElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalContent = btnElement.innerHTML;
+                
+                // Ubah style tombol jadi hijau
+                btnElement.className = "flex-shrink-0 w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center shadow-sm border border-green-100 scale-105 transition-all";
+                btnElement.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>`;
+
+                // Tampilkan Toast di atas
+                toast.classList.remove('-translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-4', 'opacity-100');
+
+                setTimeout(() => {
+                    // Kembalikan tombol
+                    btnElement.className = "flex-shrink-0 w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-100 active:scale-95 transition-all shadow-sm border border-indigo-100 group";
+                    btnElement.innerHTML = originalContent;
+                    
+                    // Sembunyikan Toast
+                    toast.classList.remove('translate-y-4', 'opacity-100');
+                    toast.classList.add('-translate-y-20', 'opacity-0');
+                }, 1500);
+            }).catch(err => {
+                console.error('Gagal menyalin: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
