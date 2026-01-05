@@ -300,32 +300,61 @@ try {
     const installContainer = document.getElementById('installContainer');
     const btnInstall = document.getElementById('btnInstall');
 
-    // Default hidden
-    if (installContainer) installContainer.style.display = 'none';
+    function hideInstallBanner() {
+        if (installContainer) {
+            installContainer.style.setProperty('display', 'none', 'important');
+        }
+    }
 
-    // Event: Browser siap menginstall
+    // 1. Cek mode standalone atau sudah pernah install (via localStorage)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isAlreadyInstalled = localStorage.getItem('pwa_installed') === 'true';
+
+    if (isStandalone || isAlreadyInstalled) {
+        hideInstallBanner();
+    }
+
+    // 2. Event: Browser siap menginstall
     window.addEventListener('beforeinstallprompt', (e) => {
+        // Jangan munculkan jika sudah standalone
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+            return;
+        }
+
+        // Jangan munculkan jika di session ini sudah pernah ditangani (opsional)
+        if (localStorage.getItem('pwa_installed') === 'true') {
+            return;
+        }
+
         e.preventDefault();
         deferredPrompt = e;
-        // Munculkan tombol kita
         if (installContainer) installContainer.style.display = 'flex';
     });
 
-    // Event: Klik Tombol Install
+    // 3. Event: Klik Tombol Install
     if (btnInstall) {
         btnInstall.addEventListener('click', async () => {
             if (deferredPrompt) {
+                // Sembunyikan dlu secara instan agar user merasa responsif
+                hideInstallBanner();
+
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    localStorage.setItem('pwa_installed', 'true');
+                }
+                
                 deferredPrompt = null;
-                installContainer.style.display = 'none';
             }
         });
     }
     
-    // Event: Sukses Install
+    // 4. Event: Sukses Install
     window.addEventListener('appinstalled', () => {
-        if (installContainer) installContainer.style.display = 'none';
+        hideInstallBanner();
+        localStorage.setItem('pwa_installed', 'true');
+        deferredPrompt = null;
     });
 
 
